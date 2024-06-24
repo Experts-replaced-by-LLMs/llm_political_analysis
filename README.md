@@ -24,7 +24,7 @@ To get started with llm_political_analysis, follow these steps:
 
 ## Documentation
 
-For detailed instructions on how to use llm_political_analysis, please refer to the [documentation](https://github.com/your-username/llm_political_analysis/wiki).
+For detailed instructions on how to use llm_political_analysis, please refer to the [documentation](https://github.com/tvashtar/llm_political_analysis/wiki).
 
 ## License
 

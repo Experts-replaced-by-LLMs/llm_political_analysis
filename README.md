@@ -17,7 +17,7 @@ The llm_political_analysis repository aims to provide a comprehensive framework 
 
 To get started with llm_political_analysis, follow these steps:
 
-1. Clone the repository: `git clone https://github.com/your-username/llm_political_analysis.git`
+1. Clone the repository: `git clone https://github.com/tvashtar/llm_political_analysis.git`
 2. Explore the repository and familiarize yourself with the available scales and scoring system.
 3. Use the provided documentation to understand how to score political manifestos and visualize the results.
 4. Contribute to the project by submitting pull requests or reporting issues.

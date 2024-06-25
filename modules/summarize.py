@@ -24,7 +24,6 @@ def summarize_text(text, issue_area, model="gpt-4o", chunk_size=5000, overlap=25
     # Summarize each chunk
     summaries = []
     for chunk in chunks:
-        print(f'Summarized so far: {len(summaries)} out of {len(chunks)} chunks', end='\r')
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -40,6 +39,8 @@ def summarize_text(text, issue_area, model="gpt-4o", chunk_size=5000, overlap=25
         summarize_chain = prompt | llm
         summary = summarize_chain.invoke({"input": chunk, "issue_area": issue_area})
         summaries.append(summary.content)
+        print(f'Summarized so far: {len(summaries)} out of {len(chunks)} chunks', end='\r')
+    print('\n')
 
     # Combine all summaries into one final summary
     final_summaries = " ".join(summaries)

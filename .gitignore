@@ -168,4 +168,5 @@ cython_debug/
 scratch.ipynb
 
 # Results of analysis
-data/results/
+data/results/*
+!.gitkeep

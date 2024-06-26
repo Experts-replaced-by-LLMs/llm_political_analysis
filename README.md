@@ -24,6 +24,10 @@ To get started with llm_political_analysis, follow these steps:
 
 ## Documentation
 
+This package currently supports OpenAI and Claude models. To use them requires that you have API keys for them, and they are stored in 
+environment variables called, OPENAI_API_KEY and ANTHROPIC_API_KEY respectively. For more details see: 
+[langchain-anthropic documentation](https://python.langchain.com/v0.2/docs/integrations/chat/anthropic/)
+[langchain-openai documentation](https://python.langchain.com/v0.2/docs/integrations/chat/openai/)
 For detailed instructions on how to use llm_political_analysis, please refer to the [documentation](https://github.com/tvashtar/llm_political_analysis/wiki).
 
 ## License

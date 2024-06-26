@@ -1,0 +1,17 @@
+name: llm_poli
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - pip
+  - pandas
+  - jupyterlab
+  - matplotlib
+
+  - pip:
+    - langchain
+    - langchain-anthropic
+    - langchain-openai
+    - langchain-google-genai

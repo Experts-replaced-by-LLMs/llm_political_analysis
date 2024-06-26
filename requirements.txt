@@ -1,5 +1,6 @@
 langchain>=0.1.11
 langchain-anthropic>=0.1.15
 langchain-openai>=0.1.8
+langchain-google-genai>=1.0.7
 pandas>=2.0
 jupyterlab>=4.1

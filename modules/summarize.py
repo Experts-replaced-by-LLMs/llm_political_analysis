@@ -40,7 +40,7 @@ def summarize_text(text, issue_area, model="gpt-4o", chunk_size=5000, overlap=25
         summary = summarize_chain.invoke({"input": chunk, "issue_area": issue_area})
         summaries.append(summary.content)
         print(f'Summarized so far: {len(summaries)} out of {len(chunks)} chunks', end='\r')
-    print('\n')
+    print('\n', end='\r')
 
     # Combine all summaries into one final summary
     final_summaries = " ".join(summaries)
@@ -51,4 +51,5 @@ def summarize_text(text, issue_area, model="gpt-4o", chunk_size=5000, overlap=25
         print(f'Condensing final summary since it is {len(final_summary)} characters')
         final_summary =  summarize_chain.invoke({"input": final_summary, "issue_area": issue_area}).content
 
+    print(f'Final summary length: {len(final_summary)} characters \n')
     return final_summary

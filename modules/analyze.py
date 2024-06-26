@@ -1,12 +1,14 @@
-import json
-
 import numpy as np
 import pandas as pd
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from .prompts import get_prompts, policy_areas
 from .summarize import summarize_text
+
+def validate_score(score):
+    return score in ['NA', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
 def analyze_text(messages, model, json_retries=3, probabilities=False):
     """
@@ -23,17 +25,22 @@ def analyze_text(messages, model, json_retries=3, probabilities=False):
 
     """
     # Tested models, this list should be updated as new models are added
+    # Each service requires an API key to work, stored as an envorinment variable
     openai_model_list = ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4']
     claude_model_list = ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307']
+    gemini_model_list = ['gemini-1.5-pro-001']
 
     if model in openai_model_list:
         llm=ChatOpenAI(temperature=0, max_tokens=150, model_name=model)
     elif model in claude_model_list:
         llm=ChatAnthropic(temperature=0, max_tokens=150, model_name=model)
+    elif model in gemini_model_list:
+        llm=ChatGoogleGenerativeAI(temperature=0, max_tokens=150, model=model)
     else:
         print("You've selected a model that is not available.")
-        print(f"Please select from the following models: {openai_model_list + claude_model_list}")
+        print(f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
 
+    # logprobs are only available for OpenAI models
     if probabilities and (model in openai_model_list):
         llm=llm.bind(logprobs=True)
     elif probabilities:
@@ -44,25 +51,31 @@ def analyze_text(messages, model, json_retries=3, probabilities=False):
         response = llm.invoke(messages)
     except Exception as invocation_error:
         print(f'Error invoking model {model}: {invocation_error}')
-        response_dict = {'score': 'NA', 'explanation':invocation_error}
+        response_dict = {'score': 'NA', 'error_message':invocation_error}
         return response_dict
     
     # A common failure mode is to not return valid JSON, so we retry a few times
+    # This is a little overkill now, previously was returning a json blob
+    # Now it's returning a simple score
     try:
-        response_dict = json.loads(response.content)
+        score = response.content.strip()
+        if not validate_score(score):
+            raise ValueError(f'Invalid score: {score}')
+        response_dict = {'score': score, 'error_message': None}
     except Exception as original_error:
         attempt=1
         while attempt <= json_retries:
-            print(f'Error parsing response from model {model}, retrying attempt {attempt}')
+            print(f'\nError parsing response from model {model}, retrying attempt {attempt}')
             try:
                 response = llm.invoke(messages)
-                response_dict = json.loads(response.content)
+                score = response.content.strip()
+                response_dict = {'score': score, 'error_message': None}
                 break
             except:
                 attempt += 1
         else:
             print(f'Retries failed with model {model}: {original_error}')
-            response_dict = {'score': 'NA', 'explanation':response}
+            response_dict = {'score': 'NA', 'error_message':response}
             return response_dict
 
     # Extract the probability of the score token from the response metadata
@@ -73,7 +86,6 @@ def analyze_text(messages, model, json_retries=3, probabilities=False):
             score_metadata = response_meta_df[response_meta_df['token'] == str(score)].iloc[0]
             # note this is a little fragile, it will retrieve the probability of the first token in the response
             # that matches the score, which given the template "should" be the score itself, but it's not guaranteed
-            # a safer alternative would be to only ask for the score, and no explanation or json template. 
             prob = np.exp(score_metadata['logprob'])
             response_dict['prob'] = prob   
         except Exception as e:
@@ -123,4 +135,4 @@ def batch_analyze_text(file_list, model_list, issue_list, probabilities=False, s
                     results.append(result)
                 print('\n')
 
-    return pd.DataFrame(results)[['file','issue','model','score','explanation','prompt']]
+    return pd.DataFrame(results)[['file','issue','model','score','error_message','prompt']]

@@ -9,6 +9,8 @@ dependencies:
   - pandas
   - jupyterlab
   - matplotlib
+  - ipywidgets
+  - openpyxl
 
   - pip:
     - langchain

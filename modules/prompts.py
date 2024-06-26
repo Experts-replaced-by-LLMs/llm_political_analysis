@@ -17,12 +17,9 @@ their policy positions to voters in an election. For the following text of
 a party manifesto, please classify the party position on the overall
 orientation of the party '''
 
-ending = '''Only give the score and a one sentence explanation. Return it in the form of 
-a valid json string  without any Markdown formatting: 
-{
-"score": 5,
-"explanation": "The party takes a middle position on this policy."
-} 
+ending = '''Only give the score with no explanation. Return it in the form of 
+a number without any Markdown formatting like: 5 or 1. If you are uncertain
+on the score give a score of NA.
 '''
 
 policy_scales = {'european_union': '''toward the European Union. Classify the manifesto

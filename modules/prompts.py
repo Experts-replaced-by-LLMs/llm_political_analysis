@@ -1,6 +1,5 @@
-# Description: Contains the prompt configuration and helper functions for the policy classification task
-# These are currently setup to permute combinations of personas and encouragements, and then customizes
-# them for a specific issue area. 
+from langchain.prompts import PromptTemplate
+from langchain.schema import HumanMessage, SystemMessage
 
 personas = ['You are an expert social scientist with a PhD in political science. ',
             'You are highly intelligent. ',
@@ -9,18 +8,6 @@ personas = ['You are an expert social scientist with a PhD in political science.
 encouragements = ['This will be fun! ',
                   'Think carefully about your answer. ',
                   'I really need your help. ']
-
-general = '''You are conducting research on the policy positions that
-European parties in parliamentary democracies take in their political
-manifestos. Political manifestos are documents parties produce to explain
-their policy positions to voters in an election. For the following text of
-a party manifesto, please classify the party position on the overall
-orientation of the party '''
-
-ending = '''Only give the score with no explanation. Return it in the form of 
-a number without any Markdown formatting like: 5 or 1. If you are uncertain
-on the score give a score of NA.
-'''
 
 policy_scales = {'european_union': '''toward the European Union. Classify the manifesto
 on this policy using a seven point scale, where a 1 means strongly opposed,
@@ -74,6 +61,8 @@ position on political decentralization, return the result of NA (meaning
 non-applicable).''',
 }
 
+# this brief description of the policy areas is used in the summarization module
+# I colocated it here to be proximate to the scales. 
 policy_areas = {'european_union': 'the European Union and European integration',
                 'taxation': 'taxation, public spending and government services',
                 'lifestyle': 'social and lifestyle policies including issues like homosexuality and DEI issues',
@@ -81,24 +70,42 @@ policy_areas = {'european_union': 'the European Union and European integration',
                 'environment': 'environmental protection and the trade-offs with economic growth',
                 'decentralization': 'political decentralization and the role of regional governments'}
 
-def get_prompts(issue_area, manifesto):
+def get_prompts(issue_area, summary):
     """
     Generate prompts for analyzing a manifesto based on the given issue area.
+    It permutes the personas and encouragements to create a variety of prompts
+    for the same issue area and summary.
 
     Args:
         issue_area (str): The issue area for which prompts are generated.
-        manifesto (str): The manifesto text to be analyzed.
+        summary (str): The summary text to be analyzed.
 
     Returns:
         list: A list of prompts, where each prompt is a list of dictionaries with 'role' and 'content' keys.
     """
     
-    system_prompts = [ (persona + encouragement + general + policy_scales[issue_area] + ending).replace('\n', ' ') for persona in personas for encouragement in encouragements]
+    system_template_string = '''
+    {persona} {encouragement}
+    You are conducting research on the policy positions that
+    European parties in parliamentary democracies take in their political
+    manifestos. Political manifestos are documents parties produce to explain
+    their policy positions to voters in an election. For the following text of
+    a party manifesto, please classify the party position on the overall
+    orientation of the party {policy_scale}
+    Only give the score with no explanation. Return it in the form of 
+    a number without any Markdown formatting, it should look like: 5 or 1. 
+    If you are uncertain on the score give a score of NA.
+    '''
+    
+    system_template = PromptTemplate(template=system_template_string)
+    human_template = PromptTemplate(template='Analyze the following text:\n{text}')
+
     prompts = []
-    for system_prompt in system_prompts:
-        prompts.append([
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Analyze the following text:\n\n{manifesto}"}
-        ]) 
+    for persona in personas:
+        for encouragement in encouragements:
+            prompts.append([
+            SystemMessage(content=system_template.format(persona=persona, encouragement=encouragement, policy_scale=policy_scales[issue_area])),
+            HumanMessage(content=human_template.format(text=summary))
+            ]) 
 
     return prompts

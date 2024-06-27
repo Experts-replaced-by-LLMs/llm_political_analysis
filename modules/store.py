@@ -1,3 +1,4 @@
+# Note this still isn't used in the main flow yet, just an option for the future.
 import sqlite3
 from datetime import datetime, timezone
 

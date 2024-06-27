@@ -98,7 +98,7 @@ def get_prompts(issue_area, summary):
     '''
     
     system_template = PromptTemplate(template=system_template_string)
-    human_template = PromptTemplate(template='Analyze the following text:\n{text}')
+    human_template = PromptTemplate(template='Analyze the following summary of a manifesto:\n{text}')
 
     prompts = []
     for persona in personas:

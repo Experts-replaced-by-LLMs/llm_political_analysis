@@ -53,3 +53,30 @@ def summarize_text(text, issue_area, model="gpt-4o", chunk_size=5000, overlap=25
 
     print(f'Final summary length: {len(final_summary)} characters \n')
     return final_summary
+
+def summarize_file(file_path, issue_area, model="gpt-4o", chunk_size=5000, overlap=250, save_summary=True):
+    """
+    Summarizes the text in the given file based on the specified issue area using a language model.
+
+    Args:
+        file_path (str): The path to the file containing the text to be summarized.
+        issue_area (str): The issue area related to the text.
+        model (str, optional): The name of the language model to be used for summarization. Defaults to "gpt-4o".
+        chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 5000.
+        overlap (int, optional): The overlap between consecutive chunks. Defaults to 250.
+
+    Returns:
+        str: The final summary of the text.
+    """
+    with open(file_path, "r") as file:
+        text = file.read()
+
+    summary = summarize_text(text, issue_area, model, chunk_size, overlap)
+
+    if save_summary:
+        file_name = file_path.split("/")[-1]
+        summary_file_name = f"../data/summaries/{file_name.split('.')[0]}_{issue_area}_summary.txt"
+        with open(summary_file_name, "w") as file:
+            file.write(summary)
+
+    return summary

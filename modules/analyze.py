@@ -5,7 +5,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from .prompts import get_prompts, policy_areas
-from .summarize import summarize_text
+from .summarize import summarize_file
 
 def validate_score(score):
     return score in ['NA', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
@@ -120,12 +120,10 @@ def batch_analyze_text(file_list, model_list, issue_list, probabilities=False, s
     # Loop through each file, issue area, model and prompt
     for file in file_list:
         print('Analyzing file: ', file)
-        with open(file, 'r') as f:
-            text = f.read()
         
         for issue in issue_list:
             print('-- Analyzing issue: ', issue)
-            summary = summarize_text(text, policy_areas.get(issue, 'general policy issues'), model=summary_model)
+            summary = summarize_file(file, policy_areas.get(issue, 'general policy issues'), model=summary_model, save_summary=True)
             prompts = get_prompts(issue, summary)
 
             for model in model_list:

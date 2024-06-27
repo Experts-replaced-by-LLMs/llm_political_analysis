@@ -167,6 +167,7 @@ cython_debug/
 # Dev file
 scratch.ipynb
 
-# Results of analysis
+# Results of analysis and summaries are not git tracked
 data/results/*
+data/summaries/*
 !.gitkeep

@@ -35,7 +35,7 @@ def summarize_text(text, issue_area, model="gpt-4o", chunk_size=5000, overlap=25
                 ("human", "{input}"),
             ]
         )
-        llm=ChatOpenAI(temperature=0, max_tokens=4000, model_name=model)
+        llm=ChatOpenAI(temperature=0, max_tokens=1000, model_name=model)
         summarize_chain = prompt | llm
         summary = summarize_chain.invoke({"input": chunk, "issue_area": issue_area})
         summaries.append(summary.content)

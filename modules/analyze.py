@@ -196,10 +196,9 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file):
     # Loop through each file, issue area, model and prompt
     for file in file_list:
         print('Analyzing file: ', file)
-        
+        summary = summarize_file(file, issue_list, save_summary=True)
         for issue in issue_list:
             print('-- Analyzing issue: ', issue)
-            summary = summarize_file(file, issue, save_summary=True)
             prompts = get_prompts(issue, summary)
 
             for model in model_list:

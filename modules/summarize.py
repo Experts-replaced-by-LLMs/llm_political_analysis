@@ -107,7 +107,6 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
     start_time = time.time()
 
     for chunk in chunks:
-        print(f'Summarizing chunk of length {len(chunk)} characters')
         # This handling is needed for the input rate limit, for gpt-4o thats 30k tokens per minute
         if tokens_used + len(chunk)/4 > token_limit:
             
@@ -148,10 +147,10 @@ def summarize_file(file_path, issue_areas, model="gpt-4o", chunk_size=100000, ov
 
     Args:
         file_path (str): The path to the file containing the text to be summarized.
-        issue_area (str): The issue area related to the text.
+        issue_areas (list): The issue areas related to the text.
         model (str, optional): The name of the language model to be used for summarization. Defaults to "gpt-4o".
-        chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 5000.
-        overlap (int, optional): The overlap between consecutive chunks. Defaults to 250.
+        chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000.
+        overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.
 
     Returns:
         str: The final summary of the text.

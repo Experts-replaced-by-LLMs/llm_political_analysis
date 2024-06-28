@@ -64,7 +64,7 @@ non-applicable).''',
 # this brief description of the policy areas is used in the summarization module
 # I colocated it here to be proximate to the scales. 
 policy_areas = {'european_union': 'the European Union and European integration',
-                'taxation': 'taxation, public spending and government services',
+                'taxation': 'taxation, public spending and the trade offs between them',
                 'lifestyle': 'social and lifestyle policies including issues like homosexuality and DEI issues',
                 'immigration': 'immigration and border control',
                 'environment': 'environmental protection and the trade-offs with economic growth',

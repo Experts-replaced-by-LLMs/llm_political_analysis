@@ -180,7 +180,7 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     return response_dicts
 
 
-def bulk_analyze_text(file_list, model_list, issue_list, results_file, parse_retries=3, max_retries=7, concurrency=3):
+def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize=True, parse_retries=3, max_retries=7, concurrency=3):
     """
     Analyzes a collection of text files using different models and prompts.
 
@@ -189,6 +189,7 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, parse_ret
     - model_list (list): A list of model names to use for analysis. 
     - issue_list (list): A list of issue areas corresponding to each text file.
     - results_file (str): The path to the Excel file where the results will be saved.
+    - summarize (bool): Whether to summarize the text before analyzing it. Defaults to True.
     - parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
     - max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
         to handle most TPM rate limits with langchains built in exponential backoff.
@@ -201,12 +202,18 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, parse_ret
 
     overall_results = []
     # Loop through each file, issue area, model and prompt
-    for file in file_list:
-        print('Analyzing file: ', file)
-        summary = summarize_file(file, issue_list, save_summary=True)
+    for file_name in file_list:
+        print('Analyzing file: ', file_name)
+
+        if summarize:
+            text = summarize_file(file_name, issue_list, save_summary=True)
+        else:
+            with open(file_name, "r") as file:
+                text = file.read()
+
         for issue in issue_list:
             print('-- Analyzing issue: ', issue)
-            prompts = get_prompts(issue, summary)
+            prompts = get_prompts(issue, text)
 
             for model in model_list:
                 print('---- Analyzing with model: ', model)
@@ -215,7 +222,7 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, parse_ret
                 results_df = pd.DataFrame(results)
                 results_df['issue'] = issue
                 results_df['model'] = model
-                results_df['file'] = file
+                results_df['file'] = file_name
                 results_df['created_at'] = datetime.now()
                 results_df = results_df[['file', 'issue', 'model', 'score', 'error_message', 'prompt', 'created_at']]
 
@@ -223,7 +230,7 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, parse_ret
                 if os.path.exists(results_file):
                     # Append to existing file
                     with pd.ExcelWriter(results_file, mode='a', engine='openpyxl', if_sheet_exists='overlay') as writer:
-                        results_df.to_excel(writer, index=False, sheet_name='Sheet1', startrow=writer.sheets['Sheet1'].max_row)
+                        results_df.to_excel(writer, index=False, header=False, sheet_name='Sheet1', startrow=writer.sheets['Sheet1'].max_row)
                 else:
                     # Create a new file
                     with pd.ExcelWriter(results_file, mode='w', engine='openpyxl') as writer:

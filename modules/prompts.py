@@ -70,15 +70,15 @@ policy_areas = {'european_union': 'the European Union and European integration',
                 'environment': 'environmental protection and the trade-offs with economic growth',
                 'decentralization': 'political decentralization and the role of regional governments'}
 
-def get_prompts(issue_area, summary):
+def get_prompts(issue_area, text):
     """
     Generate prompts for analyzing a manifesto based on the given issue area.
     It permutes the personas and encouragements to create a variety of prompts
-    for the same issue area and summary.
+    for the same issue area and text.
 
     Args:
         issue_area (str): The issue area for which prompts are generated.
-        summary (str): The summary text to be analyzed.
+        text (str): The text to be analyzed.
 
     Returns:
         list: A list of prompts, where each prompt is a list of dictionaries with 'role' and 'content' keys.
@@ -98,14 +98,14 @@ def get_prompts(issue_area, summary):
     '''
     
     system_template = PromptTemplate(template=system_template_string)
-    human_template = PromptTemplate(template='Analyze the following summary of a manifesto:\n{text}')
+    human_template = PromptTemplate(template='Analyze the following political text:\n{text}')
 
     prompts = []
     for persona in personas:
         for encouragement in encouragements:
             prompts.append([
             SystemMessage(content=system_template.format(persona=persona, encouragement=encouragement, policy_scale=policy_scales[issue_area])),
-            HumanMessage(content=human_template.format(text=summary))
+            HumanMessage(content=human_template.format(text=text))
             ]) 
 
     return prompts

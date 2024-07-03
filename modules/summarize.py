@@ -107,7 +107,7 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
     start_time = time.time()
 
     for chunk in chunks:
-        # This handling is needed for the input rate limit, for gpt-4o thats 30k tokens per minute
+        # This handling is needed for the input rate limit, for gpt-4o thats 30k tokens per minute for tier 1
         if tokens_used + len(chunk)/4 > token_limit:
             
             elapsed_time = time.time() - start_time

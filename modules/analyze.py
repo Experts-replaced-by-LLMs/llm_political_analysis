@@ -54,15 +54,15 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
         llm=llm.bind(logprobs=True)
     elif probabilities:
         print(f"Probabilities are not available for model {model}, please select a model from the following list: {openai_model_list}")
-        
+
     # This is the core call to the model
-    try: 
+    try:
         response = llm.invoke(prompt)
     except Exception as invocation_error:
         print(f'Error invoking model {model}: {invocation_error}')
         response_dict = {'score': 'NA', 'error_message':invocation_error}
         return response_dict
-    
+
     # This is hardcoded to expect a single score or NA in the response
     # If the desired response changes this will need to be updated
     # Originally this handled a json response but that was removed to make
@@ -90,18 +90,18 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
 
     # Extract the probability of the score token from the response metadata
     if probabilities and (model in openai_model_list):
-        try: 
+        try:
             score = response_dict['score']
             response_meta_df = pd.DataFrame(response.response_metadata["logprobs"]["content"])
             score_metadata = response_meta_df[response_meta_df['token'] == str(score)].iloc[0]
             # note this is a little fragile, it will retrieve the probability of the first token in the response
             # that matches the score, which given the template "should" be the score itself, but it's not guaranteed
             prob = np.exp(score_metadata['logprob'])
-            response_dict['prob'] = prob   
+            response_dict['prob'] = prob
         except Exception as e:
             print(f'Error extracting probabilities from model {model}: {e}')
             response_dict['prob'] = 'NA'
-        
+
     return response_dict
 
 
@@ -142,7 +142,7 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     else:
         print("You've selected a model that is not available.")
         print(f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
-   
+
     # This is the core call to the model, using batch for concurrency
     # We needed to add concurrency because we hit rate limits with the API
     responses = []
@@ -180,7 +180,10 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     return response_dicts
 
 
-def bulk_analyze_text(file_list, model_list, issue_list, output_dir, summarize=True, parse_retries=3, max_retries=7, concurrency=3):
+def bulk_analyze_text(
+        file_list, model_list, issue_list, output_dir, summarize=True, parse_retries=3, max_retries=7,
+        concurrency=3, override_persona_and_encouragement=None
+):
     """
     Analyzes a collection of text files using different models and prompts.
 
@@ -215,7 +218,7 @@ def bulk_analyze_text(file_list, model_list, issue_list, output_dir, summarize=T
 
         for issue in issue_list:
             print('-- Analyzing issue: ', issue)
-            prompts = get_prompts(issue, text)
+            prompts = get_prompts(issue, text, override_persona_and_encouragement)
 
             for model in model_list:
                 print('---- Analyzing with model: ', model)

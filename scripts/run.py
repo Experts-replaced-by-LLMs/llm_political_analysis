@@ -26,6 +26,9 @@ parser.add_argument("-i", "--input-dir", nargs="*", dest="input_dir",
                     help="A list of the input directories. Can be both full text or summary. Text files in the directories will be pass to the analyze function.")
 parser.add_argument("-t", "--tag", dest="tag", default="",
                     help="Tag for this run.")
+parser.add_argument("-p", "--override-persona-and-encouragement", type=int,
+                    dest="override_persona_and_encouragement", default=None, nargs="*",
+                    help="Override persona and encouragement. Should be two integers.")
 
 model_name_alias = {
     "gpt": "gpt-4o",
@@ -74,7 +77,8 @@ if __name__ == "__main__":
             models,
             args.issue_areas,
             output_dir,
-            summarize=args.summarize
+            summarize=args.summarize,
+            override_persona_and_encouragement=args.override_persona_and_encouragement
         )
     elif not args.analyze and args.summarize:
         # Summarize only

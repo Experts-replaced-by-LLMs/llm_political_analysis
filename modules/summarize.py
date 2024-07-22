@@ -1,4 +1,5 @@
-import time 
+import os.path
+import time
 
 from langchain_openai import ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -139,9 +140,8 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
     print(f'Final summary length: {len(final_summary)} characters \n')
     return final_summary
 
-        
 
-def summarize_file(file_path, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, save_summary=True):
+def summarize_file(file_path, issue_areas, output_dir, model="gpt-4o", chunk_size=100000, overlap=2500, save_summary=True):
     """
     Summarizes the text in the given file based on the specified issue area using a language model.
 
@@ -155,15 +155,16 @@ def summarize_file(file_path, issue_areas, model="gpt-4o", chunk_size=100000, ov
     Returns:
         str: The final summary of the text.
     """
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         text = file.read()
 
     summary = summarize_text_all_issues(text, issue_areas, model, chunk_size, overlap)
 
     if save_summary:
-        file_name = file_path.split("/")[-1]
-        summary_file_name = f"../data/summaries/{file_name.split('.')[0]}_summary.txt"
-        with open(summary_file_name, "w") as file:
+        input_filename, _ = os.path.splitext(os.path.basename(file_path))
+        summary_file_name = os.path.join(output_dir, f"{input_filename}_summary.txt")
+        print(f"Saving summary to {summary_file_name}")
+        with open(summary_file_name, "w", encoding="utf-8") as file:
             file.write(summary)
 
     return summary

@@ -180,7 +180,7 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     return response_dicts
 
 
-def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize=True, parse_retries=3, max_retries=7, concurrency=3):
+def bulk_analyze_text(file_list, model_list, issue_list, output_dir, summarize=True, parse_retries=3, max_retries=7, concurrency=3):
     """
     Analyzes a collection of text files using different models and prompts.
 
@@ -188,7 +188,7 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize
     - file_list (list): A list of file paths containing the texts to analyze.
     - model_list (list): A list of model names to use for analysis. 
     - issue_list (list): A list of issue areas corresponding to each text file.
-    - results_file (str): The path to the Excel file where the results will be saved.
+    - output_dir (str): The path to output directory where the results will be saved.
     - summarize (bool): Whether to summarize the text before analyzing it. Defaults to True.
     - parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
     - max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
@@ -200,15 +200,17 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize
 
     """
 
+    results_file = os.path.join(output_dir, "analyze_results.xlsx")
+
     overall_results = []
     # Loop through each file, issue area, model and prompt
     for file_name in file_list:
         print('Analyzing file: ', file_name)
 
         if summarize:
-            text = summarize_file(file_name, issue_list, save_summary=True)
+            text = summarize_file(file_name, issue_list, output_dir, save_summary=True)
         else:
-            with open(file_name, "r") as file:
+            with open(file_name, "r", encoding="utf-8") as file:
                 text = file.read()
 
         for issue in issue_list:

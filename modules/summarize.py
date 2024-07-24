@@ -104,7 +104,7 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
     # Summarize each chunk
     summaries = []
     tokens_used = 0
-    token_limit = 30000
+    token_limit = 800000
     start_time = time.time()
 
     for chunk in chunks:

@@ -8,13 +8,15 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from .prompts import get_prompts, get_few_shot_prompts
+from .prompts import get_prompts, get_few_shot_prompt
 from .summarize import summarize_file
+
 
 def validate_score(score):
     return score in ['NA', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
-def analyze_text(prompt, model, parse_retries=3, probabilities=False):
+
+def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=False):
     """
     Analyzes the given text, given a prompt using the specified model.
 
@@ -22,6 +24,8 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
     - prompt (list): A list of message objects representing the conversation.
     - model (str): The name or ID of the model to use for analysis.
     - parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
+    - max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
+            to handle most TPM rate limits with langchains built in exponential backoff.
     - probabilities (bool): Whether to include token probabilities in the response. Defaults to False. Only works with OpenAI models.
 
     Returns:
@@ -36,46 +40,53 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
     # Tested models, this list should be updated as new models are added
     # Each service requires an API key to work, stored as an envorinment variable
     openai_model_list = ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4']
-    claude_model_list = ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307']
+    claude_model_list = ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229',
+                         'claude-3-sonnet-20240229', 'claude-3-haiku-20240307']
     gemini_model_list = ['gemini-1.5-pro-001']
 
     if model in openai_model_list:
-        llm=ChatOpenAI(temperature=0, max_tokens=150, model_name=model)
+        llm = ChatOpenAI(temperature=0, max_tokens=150,
+                         model_name=model, max_retries=max_retries)
     elif model in claude_model_list:
-        llm=ChatAnthropic(temperature=0, max_tokens=150, model_name=model)
+        llm = ChatAnthropic(temperature=0, max_tokens=150,
+                            model_name=model, max_retries=max_retries)
     elif model in gemini_model_list:
-        llm=ChatGoogleGenerativeAI(temperature=0, max_tokens=150, model=model)
+        llm = ChatGoogleGenerativeAI(
+            temperature=0, max_tokens=150, model=model, max_retries=max_retries)
     else:
         print("You've selected a model that is not available.")
-        print(f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
+        print(
+            f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
 
     # logprobs are only available for OpenAI models
     if probabilities and (model in openai_model_list):
-        llm=llm.bind(logprobs=True)
+        llm = llm.bind(logprobs=True)
     elif probabilities:
-        print(f"Probabilities are not available for model {model}, please select a model from the following list: {openai_model_list}")
-        
+        print(
+            f"Probabilities are not available for model {model}, please select a model from the following list: {openai_model_list}")
+
     # This is the core call to the model
-    try: 
+    try:
         response = llm.invoke(prompt)
     except Exception as invocation_error:
         print(f'Error invoking model {model}: {invocation_error}')
-        response_dict = {'score': 'NA', 'error_message':invocation_error}
+        response_dict = {'score': 'NA', 'error_message': invocation_error}
         return response_dict
-    
+
     # This is hardcoded to expect a single score or NA in the response
     # If the desired response changes this will need to be updated
     # Originally this handled a json response but that was removed to make
-    # this more robust. 
+    # this more robust.
     try:
         score = response.content.strip()
         if not validate_score(score):
             raise ValueError(f'Invalid score: {score}')
         response_dict = {'score': score, 'error_message': None}
     except Exception as original_error:
-        attempt=1
+        attempt = 1
         while attempt <= parse_retries:
-            print(f'\nError parsing response from model {model}, retrying attempt {attempt}')
+            print(
+                f'\nError parsing response from model {model}, retrying attempt {attempt}')
             try:
                 response = llm.invoke(prompt)
                 score = response.content.strip()
@@ -85,23 +96,25 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
                 attempt += 1
         else:
             print(f'Retries failed with model {model}: {original_error}')
-            response_dict = {'score': 'NA', 'error_message':response}
+            response_dict = {'score': 'NA', 'error_message': response}
             return response_dict
 
     # Extract the probability of the score token from the response metadata
     if probabilities and (model in openai_model_list):
-        try: 
+        try:
             score = response_dict['score']
-            response_meta_df = pd.DataFrame(response.response_metadata["logprobs"]["content"])
-            score_metadata = response_meta_df[response_meta_df['token'] == str(score)].iloc[0]
+            response_meta_df = pd.DataFrame(
+                response.response_metadata["logprobs"]["content"])
+            score_metadata = response_meta_df[response_meta_df['token'] == str(
+                score)].iloc[0]
             # note this is a little fragile, it will retrieve the probability of the first token in the response
             # that matches the score, which given the template "should" be the score itself, but it's not guaranteed
             prob = np.exp(score_metadata['logprob'])
-            response_dict['prob'] = prob   
+            response_dict['prob'] = prob
         except Exception as e:
             print(f'Error extracting probabilities from model {model}: {e}')
             response_dict['prob'] = 'NA'
-        
+
     return response_dict
 
 
@@ -130,51 +143,61 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     # Tested models, this list should be updated as new models are added
     # Each service requires an API key to work, stored as an envorinment variable
     openai_model_list = ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4']
-    claude_model_list = ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307']
+    claude_model_list = ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229',
+                         'claude-3-sonnet-20240229', 'claude-3-haiku-20240307']
     gemini_model_list = ['gemini-1.5-pro-001']
 
     if model in openai_model_list:
-        llm=ChatOpenAI(temperature=0, max_tokens=150, model_name=model, max_retries=max_retries)
+        llm = ChatOpenAI(temperature=0, max_tokens=150,
+                         model_name=model, max_retries=max_retries)
     elif model in claude_model_list:
-        llm=ChatAnthropic(temperature=0, max_tokens=150, model_name=model, max_retries=max_retries)
+        llm = ChatAnthropic(temperature=0, max_tokens=150,
+                            model_name=model, max_retries=max_retries)
     elif model in gemini_model_list:
-        llm=ChatGoogleGenerativeAI(temperature=0, max_tokens=150, model=model, max_retries=max_retries)
+        llm = ChatGoogleGenerativeAI(
+            temperature=0, max_tokens=150, model=model, max_retries=max_retries)
     else:
         print("You've selected a model that is not available.")
-        print(f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
-   
+        print(
+            f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
+
     # This is the core call to the model, using batch for concurrency
     # We needed to add concurrency because we hit rate limits with the API
     responses = []
-    prompt_batches = [prompt_list[i:i + concurrency] for i in range(0, len(prompt_list), concurrency)]
+    prompt_batches = [prompt_list[i:i + concurrency]
+                      for i in range(0, len(prompt_list), concurrency)]
     for prompt_batch in prompt_batches:
         responses += llm.batch(prompt_batch)
 
     # This is hardcoded to expect a single score or NA in the response
     # If the desired response changes this will need to be updated
     # Originally this handled a json response but that was removed to make
-    # this more robust. 
+    # this more robust.
     response_dicts = []
     for i, response in enumerate(responses):
         try:
             score = response.content.strip()
             if not validate_score(score):
                 raise ValueError(f'Invalid score: {score}')
-            response_dict = {'score': score, 'error_message': None, 'prompt': prompt_list[i]}
+            response_dict = {'score': score,
+                             'error_message': None, 'prompt': prompt_list[i]}
         except Exception as original_error:
-            attempt=1
+            attempt = 1
             while attempt <= parse_retries:
-                print(f'\nError parsing response from model {model}, retrying attempt {attempt}')
+                print(
+                    f'\nError parsing response from model {model}, retrying attempt {attempt}')
                 try:
                     response = llm.invoke(prompt_list[i])
                     score = response.content.strip()
-                    response_dict = {'score': score, 'error_message': None, 'prompt': prompt_list[i]}
+                    response_dict = {
+                        'score': score, 'error_message': None, 'prompt': prompt_list[i]}
                     break
                 except:
                     attempt += 1
             else:
                 print(f'Retries failed with model {model}: {original_error}')
-                response_dict = {'score': 'NA', 'error_message':response, 'prompt': prompt_list[i]}
+                response_dict = {
+                    'score': 'NA', 'error_message': response, 'prompt': prompt_list[i]}
         response_dicts.append(response_dict)
 
     return response_dicts
@@ -218,23 +241,27 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize
             for model in model_list:
                 print('---- Analyzing with model: ', model)
 
-                results = analyze_text_with_batch(prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency)
+                results = analyze_text_with_batch(
+                    prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency)
                 results_df = pd.DataFrame(results)
                 results_df['issue'] = issue
                 results_df['model'] = model
                 results_df['file'] = file_name
                 results_df['created_at'] = datetime.now()
-                results_df = results_df[['file', 'issue', 'model', 'score', 'error_message', 'prompt', 'created_at']]
+                results_df = results_df[[
+                    'file', 'issue', 'model', 'score', 'error_message', 'prompt', 'created_at']]
 
                 # Writing to Excel as we go to avoid losing data in case of an error
                 if os.path.exists(results_file):
                     # Append to existing file
                     with pd.ExcelWriter(results_file, mode='a', engine='openpyxl', if_sheet_exists='overlay') as writer:
-                        results_df.to_excel(writer, index=False, header=False, sheet_name='Sheet1', startrow=writer.sheets['Sheet1'].max_row)
+                        results_df.to_excel(
+                            writer, index=False, header=False, sheet_name='Sheet1', startrow=writer.sheets['Sheet1'].max_row)
                 else:
                     # Create a new file
                     with pd.ExcelWriter(results_file, mode='w', engine='openpyxl') as writer:
-                        results_df.to_excel(writer, index=False, sheet_name='Sheet1')
+                        results_df.to_excel(
+                            writer, index=False, sheet_name='Sheet1')
 
                 overall_results.append(results_df)
 
@@ -242,7 +269,8 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize
     final_df = final_df.reset_index(drop=True)
     return final_df
 
-def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file, summarize=True, parse_retries=3, max_retries=7, concurrency=3):
+
+def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file, summarize=True, parse_retries=3, max_retries=7):
     """
     Analyzes a collection of text files using different models and prompts.
     It adds a longer few shot prompt based on a calibration set of files. 
@@ -256,7 +284,6 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file, 
     - parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
     - max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
         to handle most TPM rate limits with langchains built in exponential backoff.
-    - concurrency (int): The number of concurrent requests to make to the model. Defaults to 3.
 
     Returns:
     - list: A list of dictionaries containing the analyzed text generated by each model.
@@ -264,7 +291,7 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file, 
     """
 
     overall_results = []
-    # Loop through each file, issue area, model and prompt
+    # Loop through each file, issue area, model
     for file_name in file_list:
         print('Analyzing file: ', file_name)
 
@@ -276,28 +303,32 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file, 
 
         for issue in issue_list:
             print('-- Analyzing issue: ', issue)
-            prompts = get_few_shot_prompts(issue, text)
+            prompt = get_few_shot_prompt(issue, text)
 
             for model in model_list:
                 print('---- Analyzing with model: ', model)
 
-                results = analyze_text_with_batch(prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency)
+                results = analyze_text(
+                    prompt, model, parse_retries=parse_retries, max_retries=max_retries)
                 results_df = pd.DataFrame(results)
                 results_df['issue'] = issue
                 results_df['model'] = model
                 results_df['file'] = file_name
                 results_df['created_at'] = datetime.now()
-                results_df = results_df[['file', 'issue', 'model', 'score', 'error_message', 'prompt', 'created_at']]
+                results_df = results_df[[
+                    'file', 'issue', 'model', 'score', 'error_message', 'prompt', 'created_at']]
 
                 # Writing to Excel as we go to avoid losing data in case of an error
                 if os.path.exists(results_file):
                     # Append to existing file
                     with pd.ExcelWriter(results_file, mode='a', engine='openpyxl', if_sheet_exists='overlay') as writer:
-                        results_df.to_excel(writer, index=False, header=False, sheet_name='Sheet1', startrow=writer.sheets['Sheet1'].max_row)
+                        results_df.to_excel(
+                            writer, index=False, header=False, sheet_name='Sheet1', startrow=writer.sheets['Sheet1'].max_row)
                 else:
                     # Create a new file
                     with pd.ExcelWriter(results_file, mode='w', engine='openpyxl') as writer:
-                        results_df.to_excel(writer, index=False, sheet_name='Sheet1')
+                        results_df.to_excel(
+                            writer, index=False, sheet_name='Sheet1')
 
                 overall_results.append(results_df)
 

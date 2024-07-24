@@ -28,7 +28,7 @@ parser.add_argument("-t", "--tag", dest="tag", default="",
                     help="Tag for this run.")
 parser.add_argument("-p", "--override-persona-and-encouragement", type=int,
                     dest="override_persona_and_encouragement", default=None, nargs="*",
-                    help="Override persona and encouragement. Should be two integers.")
+                    help="Override persona and encouragement. Should be two integers of the index of persona and encouragement.")
 
 model_name_alias = {
     "gpt": "gpt-4o",

@@ -141,13 +141,14 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
     return final_summary
 
 
-def summarize_file(file_path, issue_areas, output_dir, model="gpt-4o", chunk_size=100000, overlap=2500, save_summary=True):
+def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", model="gpt-4o", chunk_size=100000, overlap=2500, save_summary=True):
     """
     Summarizes the text in the given file based on the specified issue area using a language model.
 
     Args:
         file_path (str): The path to the file containing the text to be summarized.
         issue_areas (list): The issue areas related to the text.
+        output_dir (str): The path to the directory where the results will be stored. Default to "../data/summaries/".
         model (str, optional): The name of the language model to be used for summarization. Defaults to "gpt-4o".
         chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000.
         overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.

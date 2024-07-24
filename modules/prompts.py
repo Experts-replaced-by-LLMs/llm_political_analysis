@@ -53,44 +53,13 @@ def get_prompts(issue_area, text):
     return prompts
 
 
-def create_cleaned_examples():
-    '''
-    A simple function to load the cleaned examples from the data folder.
-    '''
-
-    summary_list = os.listdir('../data/summaries/')
-    calibration_summary_list = [x for x in summary_list if 'Calibration' in x]
-
-    ches_results = pd.read_excel('../data/ches_scores/LLM scores vs CHES.xlsx')[
-        ['Document', 'Status', 'Dimension', 'Expert mean']]
-    ches_results = ches_results[~ches_results['Status'].isna()]
-    ches_results['Calibration File'] = ches_results['Document'].apply(
-        lambda x: next((f for f in calibration_summary_list if x in f), None))
-
-    issue_map_reversed = {'EU': 'european_union',
-                          'TaxSpend': 'taxation',
-                          'SocialLifestyle': 'lifestyle',
-                          'Immigration': 'immigration',
-                          'Environment': 'environment',
-                          'Regions': 'decentralization'}
-
-    ches_results['issue'] = ches_results['Dimension'].apply(
-        lambda x: issue_map_reversed[x])
-
-    final_prompt_setup = ches_results[['issue', 'Calibration File', 'Expert mean']].where(
-        ches_results['Calibration File'].notna()).dropna()
-    final_prompt_setup['Expert mean'] = pd.to_numeric(final_prompt_setup['Expert mean'], errors='coerce').round(
-        0).apply(lambda x: str(int(x)) if not pd.isna(x) else 'NA')
-    final_prompt_setup.to_csv(
-        '../data/ches_scores/final_prompt_setup.csv', index=False)
-
-
 def get_few_shot_prompt(issue_area, text):
     """
     Generate prompt for analyzing a manifesto based on the given issue area.
 
     This function is used to generate prompts for the few-shot learning task pulling
-    examples from the CHES dataset. It looks for a file created by create_cleaned_examples. 
+    examples from the CHES dataset. It looks for a file created in the notebook:
+    llm_political_analysis/notebooks/few_shot_prompt_setup.ipynb
 
     Args:
         issue_area (str): The issue area for which prompts are generated.
@@ -99,7 +68,7 @@ def get_few_shot_prompt(issue_area, text):
     Returns:
         list: A list of messages for the few-shot learning task.
     """
-    examples = pd.read_csv('../data/ches_scores/final_prompt_setup.csv',
+    examples = pd.read_csv('../data/ches_scores/final_prompt_setup_new.csv',
                            dtype={'Expert mean': str}, keep_default_na=False)
     issue_examples = examples[examples['issue'] == issue_area]
 

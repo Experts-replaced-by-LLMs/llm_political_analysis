@@ -29,6 +29,10 @@ parser.add_argument("-t", "--tag", dest="tag", default="",
 parser.add_argument("-p", "--override-persona-and-encouragement", type=int,
                     dest="override_persona_and_encouragement", default=None, nargs="*",
                     help="Override persona and encouragement. Should be two integers of the index of persona and encouragement.")
+parser.add_argument("-r", "--parse_retries", type=int,
+                    dest="parse_retries", default=3,
+                    help="The number of times to retry parsing the response.")
+
 
 model_name_alias = {
     "gpt": "gpt-4o",
@@ -78,7 +82,8 @@ if __name__ == "__main__":
             args.issue_areas,
             output_dir,
             summarize=args.summarize,
-            override_persona_and_encouragement=args.override_persona_and_encouragement
+            override_persona_and_encouragement=args.override_persona_and_encouragement,
+            parse_retries=args.parse_retries
         )
     elif not args.analyze and args.summarize:
         # Summarize only

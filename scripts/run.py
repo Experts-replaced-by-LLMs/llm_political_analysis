@@ -80,10 +80,10 @@ if __name__ == "__main__":
             input_file_list,
             models,
             args.issue_areas,
-            output_dir,
             summarize=args.summarize,
             override_persona_and_encouragement=args.override_persona_and_encouragement,
-            parse_retries=args.parse_retries
+            parse_retries=args.parse_retries,
+            output_dir=output_dir
         )
     elif not args.analyze and args.summarize:
         # Summarize only

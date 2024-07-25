@@ -70,8 +70,9 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
         response = llm.invoke(prompt)
     except Exception as invocation_error:
         print(f'Error invoking model {model}: {invocation_error}')
-        response_dict = {'score': 'NA', 'error_message': invocation_error}
-        response_dict['prompt'] = prompt
+        response_dict = {'score': 'NA',
+                         'error_message': invocation_error,
+                         'prompt': prompt}
         return response_dict
 
     # This is hardcoded to expect a single score or NA in the response
@@ -82,8 +83,10 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
         score = response.content.strip()
         if not validate_score(score):
             raise ValueError(f'Invalid score: {score}')
-        response_dict = {'score': score, 'error_message': None}
-        response_dict['prompt'] = prompt
+        response_dict = {'score': score,
+                         'error_message': None,
+                         'prompt': prompt}
+
     except Exception as original_error:
         attempt = 1
         while attempt <= parse_retries:
@@ -92,14 +95,17 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
             try:
                 response = llm.invoke(prompt)
                 score = response.content.strip()
-                response_dict = {'score': score, 'error_message': None}
+                response_dict = {'score': score,
+                                 'error_message': None,
+                                 'prompt': prompt}
                 break
             except:
                 attempt += 1
         else:
             print(f'Retries failed with model {model}: {original_error}')
-            response_dict = {'score': 'NA', 'error_message': response}
-            response_dict['prompt'] = prompt
+            response_dict = {'score': 'NA',
+                             'error_message': response,
+                             'prompt': prompt}
             return response_dict
 
     # Extract the probability of the score token from the response metadata

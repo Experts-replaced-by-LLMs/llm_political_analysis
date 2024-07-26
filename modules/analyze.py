@@ -79,6 +79,8 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
             try:
                 response = llm.invoke(prompt)
                 score = response.content.strip()
+                if not validate_score(score):
+                    raise ValueError(f'Invalid score: {score}')
                 response_dict = {'score': score, 'error_message': None}
                 break
             except:
@@ -168,6 +170,8 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
                 try:
                     response = llm.invoke(prompt_list[i])
                     score = response.content.strip()
+                    if not validate_score(score):
+                        raise ValueError(f'Invalid score: {score}')
                     response_dict = {'score': score, 'error_message': None, 'prompt': prompt_list[i]}
                     break
                 except:

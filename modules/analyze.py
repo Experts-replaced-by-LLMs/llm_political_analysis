@@ -54,15 +54,15 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
         llm=llm.bind(logprobs=True)
     elif probabilities:
         print(f"Probabilities are not available for model {model}, please select a model from the following list: {openai_model_list}")
-        
+
     # This is the core call to the model
-    try: 
+    try:
         response = llm.invoke(prompt)
     except Exception as invocation_error:
         print(f'Error invoking model {model}: {invocation_error}')
         response_dict = {'score': 'NA', 'error_message':invocation_error}
         return response_dict
-    
+
     # This is hardcoded to expect a single score or NA in the response
     # If the desired response changes this will need to be updated
     # Originally this handled a json response but that was removed to make
@@ -79,6 +79,8 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
             try:
                 response = llm.invoke(prompt)
                 score = response.content.strip()
+                if not validate_score(score):
+                    raise ValueError(f'Invalid score: {score}')
                 response_dict = {'score': score, 'error_message': None}
                 break
             except:
@@ -90,18 +92,18 @@ def analyze_text(prompt, model, parse_retries=3, probabilities=False):
 
     # Extract the probability of the score token from the response metadata
     if probabilities and (model in openai_model_list):
-        try: 
+        try:
             score = response_dict['score']
             response_meta_df = pd.DataFrame(response.response_metadata["logprobs"]["content"])
             score_metadata = response_meta_df[response_meta_df['token'] == str(score)].iloc[0]
             # note this is a little fragile, it will retrieve the probability of the first token in the response
             # that matches the score, which given the template "should" be the score itself, but it's not guaranteed
             prob = np.exp(score_metadata['logprob'])
-            response_dict['prob'] = prob   
+            response_dict['prob'] = prob
         except Exception as e:
             print(f'Error extracting probabilities from model {model}: {e}')
             response_dict['prob'] = 'NA'
-        
+
     return response_dict
 
 
@@ -142,7 +144,7 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     else:
         print("You've selected a model that is not available.")
         print(f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
-   
+
     # This is the core call to the model, using batch for concurrency
     # We needed to add concurrency because we hit rate limits with the API
     responses = []
@@ -168,6 +170,8 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
                 try:
                     response = llm.invoke(prompt_list[i])
                     score = response.content.strip()
+                    if not validate_score(score):
+                        raise ValueError(f'Invalid score: {score}')
                     response_dict = {'score': score, 'error_message': None, 'prompt': prompt_list[i]}
                     break
                 except:
@@ -180,7 +184,11 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     return response_dicts
 
 
-def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize=True, parse_retries=3, max_retries=7, concurrency=3):
+def bulk_analyze_text(
+        file_list, model_list, issue_list, summarize=True, parse_retries=3, max_retries=7,
+        concurrency=3, override_persona_and_encouragement=None, results_file=None,
+        output_dir=None, results_file_name="analyze_results.xlsx"
+):
     """
     Analyzes a collection of text files using different models and prompts.
 
@@ -188,17 +196,22 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize
     - file_list (list): A list of file paths containing the texts to analyze.
     - model_list (list): A list of model names to use for analysis. 
     - issue_list (list): A list of issue areas corresponding to each text file.
-    - results_file (str): The path to the Excel file where the results will be saved.
     - summarize (bool): Whether to summarize the text before analyzing it. Defaults to True.
     - parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
     - max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
         to handle most TPM rate limits with langchains built in exponential backoff.
     - concurrency (int): The number of concurrent requests to make to the model. Defaults to 3.
+    - results_file (str): The path to the Excel file where the results will be saved, if provided,
+        output_dir and results_file_name will be ignored.
+    - output_dir (str): The path to the output directory where the results will be saved.
+    - results_file_name(str): The name of the output file. Defaults to 'analyze_results.xlsx'.
 
     Returns:
     - list: A list of dictionaries containing the analyzed text generated by each model.
 
     """
+    if results_file is None:
+        results_file = os.path.join(output_dir, results_file_name)
 
     overall_results = []
     # Loop through each file, issue area, model and prompt
@@ -206,14 +219,14 @@ def bulk_analyze_text(file_list, model_list, issue_list, results_file, summarize
         print('Analyzing file: ', file_name)
 
         if summarize:
-            text = summarize_file(file_name, issue_list, save_summary=True)
+            text = summarize_file(file_name, issue_list, output_dir, save_summary=True)
         else:
-            with open(file_name, "r") as file:
+            with open(file_name, "r", encoding="utf-8") as file:
                 text = file.read()
 
         for issue in issue_list:
             print('-- Analyzing issue: ', issue)
-            prompts = get_prompts(issue, text)
+            prompts = get_prompts(issue, text, override_persona_and_encouragement)
 
             for model in model_list:
                 print('---- Analyzing with model: ', model)

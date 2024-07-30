@@ -75,7 +75,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
         response = llm.invoke(prompt)
     except Exception as invocation_error:
         print(f'Error invoking model {model}: {invocation_error}')
-        response_dict = {'score': 'NA',
+        response_dict = {'score': 'ERR',
                          'error_message': invocation_error,
                          'prompt': prompt_string}
         return response_dict
@@ -110,8 +110,8 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
                 attempt += 1
         else:
             print(f'Retries failed with model {model}: {original_error}')
-            response_dict = {'score': 'NA',
-                             'error_message': response,
+            response_dict = {'score': 'ERR',
+                             'error_message': original_error,
                              'prompt': prompt_string}
             return response_dict
 
@@ -129,7 +129,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
             response_dict['prob'] = prob
         except Exception as e:
             print(f'Error extracting probabilities from model {model}: {e}')
-            response_dict['prob'] = 'NA'
+            response_dict['prob'] = 'ERR'
 
     return response_dict
 
@@ -215,7 +215,7 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
             else:
                 print(f'Retries failed with model {model}: {original_error}')
                 response_dict = {
-                    'score': 'NA', 'error_message': response, 'prompt': prompt_list[i]}
+                    'score': 'ERR', 'error_message': original_error, 'prompt': prompt_list[i]}
         response_dicts.append(response_dict)
 
     return response_dicts

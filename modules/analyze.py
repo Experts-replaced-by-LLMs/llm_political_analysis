@@ -58,6 +58,11 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
         print(
             f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
 
+    if type(prompt) == list:
+        prompt_string = ''.join([message.content for message in prompt])
+    else:
+        prompt_string = prompt
+
     # logprobs are only available for OpenAI models
     if probabilities and (model in openai_model_list):
         llm = llm.bind(logprobs=True)
@@ -72,7 +77,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
         print(f'Error invoking model {model}: {invocation_error}')
         response_dict = {'score': 'NA',
                          'error_message': invocation_error,
-                         'prompt': prompt}
+                         'prompt': prompt_string}
         return response_dict
 
     # This is hardcoded to expect a single score or NA in the response
@@ -85,7 +90,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
             raise ValueError(f'Invalid score: {score}')
         response_dict = {'score': score,
                          'error_message': None,
-                         'prompt': prompt}
+                         'prompt': prompt_string}
 
     except Exception as original_error:
         attempt = 1
@@ -99,7 +104,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
                     raise ValueError(f'Invalid score: {score}')
                 response_dict = {'score': score,
                                  'error_message': None,
-                                 'prompt': prompt}
+                                 'prompt': prompt_string}
                 break
             except:
                 attempt += 1
@@ -107,7 +112,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
             print(f'Retries failed with model {model}: {original_error}')
             response_dict = {'score': 'NA',
                              'error_message': response,
-                             'prompt': prompt}
+                             'prompt': prompt_string}
             return response_dict
 
     # Extract the probability of the score token from the response metadata
@@ -337,7 +342,7 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file,
 
                 results = analyze_text(
                     prompt, model, parse_retries=parse_retries, max_retries=max_retries)
-                results_df = pd.DataFrame(results)
+                results_df = pd.DataFrame([results])
                 results_df['issue'] = issue
                 results_df['model'] = model
                 results_df['file'] = file_name

@@ -12,6 +12,7 @@ dependencies:
   - ipywidgets
   - openpyxl
   - seaborn
+  - python-dotenv
 
   - pip:
     - langchain

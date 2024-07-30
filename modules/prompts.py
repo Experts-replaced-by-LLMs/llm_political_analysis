@@ -2,6 +2,7 @@ import os
 import json
 
 import pandas as pd
+
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 
@@ -24,15 +25,17 @@ system_template_string = prompts_analyze["system_template_string"]
 human_template_string = prompts_analyze["human_template_string"]
 
 
-def get_prompts(issue_area, text):
+def get_prompts(issue_area, text, override_persona_and_encouragement=None):
     """
     Generate prompts for analyzing a manifesto based on the given issue area.
-    It permutes the personas and encouragements to create a variety of prompts
+    If override_persona_and_encouragement are provided, use it in the prompt.
+    Otherwise, permutes the personas and encouragements to create a variety of prompts
     for the same issue area and text.
 
     Args:
         issue_area (str): The issue area for which prompts are generated.
         text (str): The text to be analyzed.
+        override_persona_and_encouragement (tuple): The persona and encouragement to use.
 
     Returns:
         list: A list of prompts, where each prompt is a list of dictionaries with 'role' and 'content' keys.

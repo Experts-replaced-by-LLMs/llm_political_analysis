@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 import pandas as pd
 
@@ -40,20 +40,27 @@ def get_prompts(issue_area, text, override_persona_and_encouragement=None):
     Returns:
         list: A list of prompts, where each prompt is a list of dictionaries with 'role' and 'content' keys.
     """
-
     system_template = PromptTemplate(template=system_template_string)
     human_template = PromptTemplate(template=human_template_string)
 
-    prompts = []
-    for persona in personas:
-        for encouragement in encouragements:
-            prompts.append([
-                SystemMessage(content=system_template.format(
-                    persona=persona, encouragement=encouragement, policy_scale=policy_scales[issue_area])),
-                HumanMessage(content=human_template.format(text=text))
-            ])
-
-    return prompts
+    if override_persona_and_encouragement is not None:
+        idx_persona, idx_encouragement = override_persona_and_encouragement
+        return [[
+            SystemMessage(content=system_template.format(persona=personas[idx_persona],
+                                                         encouragement=encouragements[idx_encouragement],
+                                                         policy_scale=policy_scales[issue_area])),
+            HumanMessage(content=human_template.format(text=text))
+        ]]
+    else:
+        prompts = []
+        for persona in personas:
+            for encouragement in encouragements:
+                prompts.append([
+                    SystemMessage(content=system_template.format(persona=persona, encouragement=encouragement,
+                                                                 policy_scale=policy_scales[issue_area])),
+                    HumanMessage(content=human_template.format(text=text))
+                ])
+        return prompts
 
 
 def get_few_shot_prompt(issue_area, text):

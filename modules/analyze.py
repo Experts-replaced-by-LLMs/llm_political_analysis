@@ -294,7 +294,8 @@ def bulk_analyze_text(
     return final_df
 
 
-def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file, summarize=True, parse_retries=3, max_retries=7):
+def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file,
+                               output_dir="../data/summaries/",  summarize=True, parse_retries=3, max_retries=7):
     """
     Analyzes a collection of text files using different models and prompts.
     It adds a longer few shot prompt based on a calibration set of files. 
@@ -305,6 +306,7 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file, 
     - issue_list (list): A list of issue areas corresponding to each text file.
     - results_file (str): The path to the Excel file where the results will be saved.
     - summarize (bool): Whether to summarize the text before analyzing it. Defaults to True.
+    - output_dir (str): The path to the output directory where the summaries will be saved.
     - parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
     - max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
         to handle most TPM rate limits with langchains built in exponential backoff.
@@ -328,14 +330,13 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file, 
 
         for issue in issue_list:
             print('-- Analyzing issue: ', issue)
-            prompts = get_prompts(
-                issue, text, override_persona_and_encouragement)
+            prompt = get_few_shot_prompt(issue, text)
 
             for model in model_list:
                 print('---- Analyzing with model: ', model)
 
-                results = analyze_text_with_batch(
-                    prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency)
+                results = analyze_text(
+                    prompt, model, parse_retries=parse_retries, max_retries=max_retries)
                 results_df = pd.DataFrame(results)
                 results_df['issue'] = issue
                 results_df['model'] = model

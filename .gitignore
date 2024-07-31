@@ -169,5 +169,4 @@ scratch.ipynb
 
 # Results of analysis and summaries are not git tracked
 data/results/*
-data/summaries/*
 !.gitkeep

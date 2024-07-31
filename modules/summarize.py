@@ -40,7 +40,8 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
 
         {issue_areas}
 
-        Aim for a concise summary of around {min_size}-{max_size} words that covers these key policy areas. Giving bullet points for each area, and format the output as plaintext. 
+        Aim for a concise summary of around {min_size}-{max_size} words that covers these key policy areas, and be sure they are all present on the original text.
+        Give bullet points for each area, and format the output as plaintext. 
         '''
     system_template = PromptTemplate(template=system_template_string)
     human_template = PromptTemplate(template='Please summarize the following text:\n{text}')
@@ -111,9 +112,6 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
     Returns:
         str: The final summary of the text.
     """
-    with open(file_path, "r", encoding="utf-8") as file:
-        text = file.read()
-
     # Handle single issues gracefully
     if isinstance(issue_areas, str):
         issue_areas = [issue_areas]
@@ -129,19 +127,21 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
         length = 'long'
 
     if len(issue_areas) > 1:
-        summary_file_name = os.path.join(output_dir, f"{input_filename}_multi_issue_{length}_summary.txt")
+        summary_file_name = os.path.join(output_dir, f"summary_{length}_multi_issue_{input_filename}.txt")
     else:
-        summary_file_name = os.path.join(output_dir, f"{input_filename}_{issue_areas[0]}_{length}_summary.txt")
+        summary_file_name = os.path.join(output_dir, f"summary_{length}_{issue_areas[0]}_{input_filename}.txt")
 
-    # Check if the summary file already exists, and reuses it if requested
+    # Check if the summary file already exists, and reuses it if requested, exiting early
     if if_exists == 'reuse':
         if os.path.exists(summary_file_name):
             print(f"Summary file {summary_file_name} already exists. Reusing the existing summary.")
             with open(summary_file_name, "r", encoding="utf-8") as file:
                 return file.read()
 
+    # Main summarization process
+    with open(file_path, "r", encoding="utf-8") as file:
+        text = file.read()
     summary = summarize_text(text, issue_areas, model=model, chunk_size=chunk_size, overlap=overlap, summary_size=summary_size)
-
     if save_summary:
         print(f"Saving summary to {summary_file_name}")
         with open(summary_file_name, "w", encoding="utf-8") as file:

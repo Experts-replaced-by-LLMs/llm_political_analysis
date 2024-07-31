@@ -1,11 +1,14 @@
 import json
 import os
 
+import pandas as pd
+
 from langchain.prompts import PromptTemplate
-from langchain.schema import HumanMessage, SystemMessage
+from langchain.schema import HumanMessage, SystemMessage, AIMessage
 
 with open(
-        os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "prompts", "prompts-analyze.json"),
+        os.path.join(os.path.abspath(os.path.dirname(
+            os.path.dirname(__file__))), "prompts", "prompts-analyze.json"),
         "r", encoding="utf-8"
 ) as f:
     prompts_analyze = json.loads(f.read())
@@ -58,3 +61,48 @@ def get_prompts(issue_area, text, override_persona_and_encouragement=None):
                     HumanMessage(content=human_template.format(text=text))
                 ])
         return prompts
+
+
+def get_few_shot_prompt(issue_area, text):
+    """
+    Generate prompt for analyzing a manifesto based on the given issue area.
+
+    This function is used to generate prompts for the few-shot learning task pulling
+    examples from the CHES dataset. It looks for a file created in the notebook:
+    llm_political_analysis/notebooks/few_shot_prompt_setup.ipynb
+
+    Args:
+        issue_area (str): The issue area for which prompts are generated.
+        text (str): The text to be analyzed.
+
+    Returns:
+        list: A list of messages for the few-shot learning task.
+    """
+    examples = pd.read_csv('../data/ches_scores/final_prompt_setup_new.csv',
+                           dtype={'Expert mean': str}, keep_default_na=False)
+    issue_examples = examples[examples['issue'] == issue_area]
+
+    system_template = PromptTemplate(template=system_template_string)
+    human_template = PromptTemplate(template=human_template_string)
+    ai_template = PromptTemplate(template='{text}')
+
+    # It was decided after prompt varation analysis that the first persona and second encouragement
+    # were sufficient.
+
+    persona = personas[0]
+    encouragement = encouragements[1]
+
+    prompt = [SystemMessage(content=system_template.format(
+        persona=persona, encouragement=encouragement, policy_scale=policy_scales[issue_area]))]
+    for example in issue_examples.iterrows():
+        summary_file_name = example[1]['Calibration File']
+        with open(f'../data/summaries/{summary_file_name}', 'r') as summary_file:
+            summary = summary_file.read()
+        prompt.append(HumanMessage(
+            content=human_template.format(text=summary)))
+        prompt.append(AIMessage(content=ai_template.format(
+            text=example[1]['Expert mean'])))
+    prompt.append(HumanMessage(
+        content=human_template.format(text=text)))
+
+    return prompt

@@ -9,7 +9,7 @@ from langchain.schema import HumanMessage, SystemMessage
 from .prompts import policy_areas
 
 
-def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500,1000)):
+def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500,1000), debug=False):
     """
     Summarizes the given text based on the specified issue areas using a language model.
     This approach creates all the summaries in one pass to avoid repeating the summarization process.
@@ -21,6 +21,7 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
         chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000.
         overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.
         summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
+        debug (bool, optional): Should debug information be printed. Defaults to False.
 
     Returns:
         str: The final summary of the text.
@@ -74,6 +75,9 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
 
         summarize_prompt = [SystemMessage(content=system_template.format(issue_areas=issue_list_string, min_size=summary_size[0], max_size=summary_size[1])),
                         HumanMessage(content=human_template.format(text=chunk))] 
+        if debug:
+            print('Prompt:', summarize_prompt)
+
         summary = llm.invoke(summarize_prompt)
         summaries.append(summary.content)
         tokens_used += summary.response_metadata['token_usage']['prompt_tokens']
@@ -94,7 +98,8 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
     return final_summary
 
 def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", model="gpt-4o",
-                   chunk_size=100000, overlap=2500, summary_size=(500,1000), if_exists='overwrite', save_summary=True):
+                   chunk_size=100000, overlap=2500, summary_size=(500,1000), if_exists='overwrite',
+                   save_summary=True, debug=False):
     """
     Summarizes the text in the given file based on the specified issue area using a language model.
 
@@ -108,6 +113,7 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
         summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
         if_exists (str, optional): What to do if the summary file already exists. Options are 'overwrite', 'reuse' Defaults to 'overwrite'
         save_summary (bool, optional): Should the summary be saved to a file. Defaults to True.
+        debug (bool, optional): Should debug information be printed. Defaults to False.
 
     Returns:
         str: The final summary of the text.
@@ -127,9 +133,9 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
         length = 'long'
 
     if len(issue_areas) > 1:
-        summary_file_name = os.path.join(output_dir, f"summary_{length}_multi_issue_{input_filename}.txt")
+        summary_file_name = os.path.join(output_dir, f"summary_{length}_multi_issue__{input_filename}.txt")
     else:
-        summary_file_name = os.path.join(output_dir, f"summary_{length}_{issue_areas[0]}_{input_filename}.txt")
+        summary_file_name = os.path.join(output_dir, f"summary_{length}_{issue_areas[0]}__{input_filename}.txt")
 
     # Check if the summary file already exists, and reuses it if requested, exiting early
     if if_exists == 'reuse':
@@ -141,7 +147,7 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
     # Main summarization process
     with open(file_path, "r", encoding="utf-8") as file:
         text = file.read()
-    summary = summarize_text(text, issue_areas, model=model, chunk_size=chunk_size, overlap=overlap, summary_size=summary_size)
+    summary = summarize_text(text, issue_areas, model=model, chunk_size=chunk_size, overlap=overlap, summary_size=summary_size, debug=debug)
     if save_summary:
         print(f"Saving summary to {summary_file_name}")
         with open(summary_file_name, "w", encoding="utf-8") as file:

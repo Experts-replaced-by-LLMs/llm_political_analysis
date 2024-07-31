@@ -3,69 +3,13 @@ import time
 
 from langchain_openai import ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage
 
 from .prompts import policy_areas
 
 
-def summarize_text(text, issue, model="gpt-4o", chunk_size=350000, overlap=2500):
-    """
-    Summarizes the given text based on the specified issue area using a language model.
-    This was the original approach to summarization, but it is not as efficient as the summarize_text_all_issues function.
-
-    Args:
-        text (str): The text to be summarized.
-        issue_area (str): The issue area related to the text.
-        model (str, optional): The name of the language model to be used for summarization. Defaults to "gpt-4o".
-        chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 5000.
-        overlap (int, optional): The overlap between consecutive chunks. Defaults to 250.
-
-    Returns:
-        str: The final summary of the text.
-    """
-    # Split the text into manageable chunks
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
-    chunks = text_splitter.split_text(text)
-    
-    # Summarize each chunk
-    summaries = []
-    for chunk in chunks:
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    '''You are a helpful text summarizer. You should detect the initial language and output the summaries in English 
-                    you want to retain important policy information related to {issue_area}. Return the summaries as a list with minimal
-                    formatting. The summaries will be analyzed to determine the party's position on the policy area, on a
-                    spectrum so be sure to select the most important policy points''',
-                ),
-                ("human", "{input}"),
-            ]
-        )
-        llm=ChatOpenAI(temperature=0, max_tokens=1000, model_name=model)
-        summarize_chain = prompt | llm
-        summary = summarize_chain.invoke({"input": chunk, "issue_area": policy_areas.get(issue, 'general policy issues')})
-        summaries.append(summary.content)
-        print(f'Summarized so far: {len(summaries)} out of {len(chunks)} chunks', end='\r')
-    print('\n', end='\r')
-
-    # Combine all summaries into one final summary
-    if len(summaries) > 1:
-        final_summaries = " ".join(summaries)
-        final_summary = summarize_chain.invoke({"input": final_summaries, "issue_area": policy_areas.get(issue, 'general policy issues')}).content
-    else:
-        final_summary = summaries[0]
-
-    # Check if the final summary is still too long, if so, summarize again
-    if len(final_summary) > 5000:
-        print(f'Condensing final summary since it is {len(final_summary)} characters')
-        final_summary =  summarize_chain.invoke({"input": final_summary, "issue_area": policy_areas.get(issue, 'general policy issues')}).content
-
-    print(f'Final summary length: {len(final_summary)} characters \n')
-    return final_summary
-
-def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500):
+def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500,1000)):
     """
     Summarizes the given text based on the specified issue areas using a language model.
     This approach creates all the summaries in one pass to avoid repeating the summarization process.
@@ -76,10 +20,15 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
         model (str, optional): The name of the language model to be used for summarization. Defaults to "gpt-4o".
         chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000.
         overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.
+        summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
 
     Returns:
         str: The final summary of the text.
     """
+    # Handle single issues gracefully
+    if isinstance(issue_areas, str):
+        issue_areas = [issue_areas]
+
     # Split the text into manageable chunks
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
     chunks = text_splitter.split_text(text)
@@ -91,15 +40,18 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
 
         {issue_areas}
 
-        Aim for a concise summary of around 500-1000 words that covers these key policy areas. Giving bullet points for each area. 
+        Aim for a concise summary of around {min_size}-{max_size} words that covers these key policy areas. Giving bullet points for each area, and format the output as plaintext. 
         '''
     system_template = PromptTemplate(template=system_template_string)
-    issue_area_descriptions = [policy_areas.get(issue, 'general policy issues') for issue in issue_areas]
-    issue_list_string = "\n".join([f"{i+1}. {area}" for i, area in enumerate(issue_area_descriptions)])
     human_template = PromptTemplate(template='Please summarize the following text:\n{text}')
 
+    issue_area_dict = {issue:policy_areas.get(issue, 'general policy issues') for issue in issue_areas}
+    issue_area_descriptions = [f"{issue}: {description}" for issue, description in issue_area_dict.items()]
+    issue_list_string = "\n".join([f"{i+1}. {area}" for i, area in enumerate(issue_area_descriptions)])
+
+
     # Setup the LLM
-    llm=ChatOpenAI(temperature=0, max_tokens=1000, model_name=model)
+    llm=ChatOpenAI(temperature=0, max_tokens=summary_size[1], model_name=model)
 
     # Summarize each chunk
     summaries = []
@@ -108,7 +60,7 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
     start_time = time.time()
 
     for chunk in chunks:
-        # This handling is needed for the input rate limit, for gpt-4o thats 30k tokens per minute for tier 1
+        # This handling is needed for the input rate limit, for gpt-4o thats 30k tokens per minute for tier 1, 800k tokens per minute for tier 3
         if tokens_used + len(chunk)/4 > token_limit:
             
             elapsed_time = time.time() - start_time
@@ -119,7 +71,7 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
             tokens_used = 0
             start_time = time.time()
 
-        summarize_prompt = [SystemMessage(content=system_template.format(issue_areas=issue_list_string)),
+        summarize_prompt = [SystemMessage(content=system_template.format(issue_areas=issue_list_string, min_size=summary_size[0], max_size=summary_size[1])),
                         HumanMessage(content=human_template.format(text=chunk))] 
         summary = llm.invoke(summarize_prompt)
         summaries.append(summary.content)
@@ -140,8 +92,8 @@ def summarize_text_all_issues(text, issue_areas, model="gpt-4o", chunk_size=1000
     print(f'Final summary length: {len(final_summary)} characters \n')
     return final_summary
 
-
-def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", model="gpt-4o", chunk_size=100000, overlap=2500, save_summary=True):
+def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", model="gpt-4o",
+                   chunk_size=100000, overlap=2500, summary_size=(500,1000), if_exists='overwrite', save_summary=True):
     """
     Summarizes the text in the given file based on the specified issue area using a language model.
 
@@ -152,6 +104,9 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
         model (str, optional): The name of the language model to be used for summarization. Defaults to "gpt-4o".
         chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000.
         overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.
+        summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
+        if_exists (str, optional): What to do if the summary file already exists. Options are 'overwrite', 'reuse' Defaults to 'overwrite'
+        save_summary (bool, optional): Should the summary be saved to a file. Defaults to True.
 
     Returns:
         str: The final summary of the text.
@@ -159,11 +114,35 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
     with open(file_path, "r", encoding="utf-8") as file:
         text = file.read()
 
-    summary = summarize_text_all_issues(text, issue_areas, model, chunk_size, overlap)
+    # Handle single issues gracefully
+    if isinstance(issue_areas, str):
+        issue_areas = [issue_areas]
+
+    # Constructs the output file name
+    input_filename, _ = os.path.splitext(os.path.basename(file_path))
+
+    if summary_size[1] == 1000:
+        length = 'standard'
+    elif summary_size[1] < 1000:
+        length = 'short'
+    else:
+        length = 'long'
+
+    if len(issue_areas) > 1:
+        summary_file_name = os.path.join(output_dir, f"{input_filename}_multi_issue_{length}_summary.txt")
+    else:
+        summary_file_name = os.path.join(output_dir, f"{input_filename}_{issue_areas[0]}_{length}_summary.txt")
+
+    # Check if the summary file already exists, and reuses it if requested
+    if if_exists == 'reuse':
+        if os.path.exists(summary_file_name):
+            print(f"Summary file {summary_file_name} already exists. Reusing the existing summary.")
+            with open(summary_file_name, "r", encoding="utf-8") as file:
+                return file.read()
+
+    summary = summarize_text(text, issue_areas, model=model, chunk_size=chunk_size, overlap=overlap, summary_size=summary_size)
 
     if save_summary:
-        input_filename, _ = os.path.splitext(os.path.basename(file_path))
-        summary_file_name = os.path.join(output_dir, f"{input_filename}_summary.txt")
         print(f"Saving summary to {summary_file_name}")
         with open(summary_file_name, "w", encoding="utf-8") as file:
             file.write(summary)

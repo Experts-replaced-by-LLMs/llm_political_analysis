@@ -88,7 +88,7 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
     if len(summaries) > 1:
         print('Combining summaries into one final summary')
         final_summaries = " ".join(summaries)
-        final_summarize_prompt = [SystemMessage(content=system_template.format(issue_areas=issue_list_string)),
+        final_summarize_prompt = [SystemMessage(content=system_template.format(issue_areas=issue_list_string, min_size=summary_size[0], max_size=summary_size[1])),
                         HumanMessage(content=human_template.format(text=final_summaries))] 
         final_summary = llm.invoke(final_summarize_prompt).content
     else:

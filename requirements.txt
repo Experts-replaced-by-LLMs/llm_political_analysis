@@ -8,3 +8,6 @@ ipywidgets>=8.1
 openpyxl>=3.1
 python-dotenv>=1.0.1
 seaborn>=0.13
+google-cloud-translate>=3.15.5
+google-cloud-storage>=2.18.1
+langchain-google-community>=1.0.7

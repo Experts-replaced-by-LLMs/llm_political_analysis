@@ -24,12 +24,18 @@ To get started with llm_political_analysis, follow these steps:
 
 ## Documentation
 
-This package currently supports OpenAI and Claude models. To use them requires that you have API keys for them, and they are stored in 
-environment variables called, OPENAI_API_KEY and ANTHROPIC_API_KEY respectively. For more details see: 
+This package currently supports OpenAI, Claude and Gemini models. To use them requires that you have API keys for them, and they are stored in 
+environment variables called, OPENAI_API_KEY, ANTHROPIC_API_KEY and GOOGLE_API_KEY respectively. For more details see: 
 
 [langchain-anthropic documentation](https://python.langchain.com/v0.2/docs/integrations/chat/anthropic/)
 
 [langchain-openai documentation](https://python.langchain.com/v0.2/docs/integrations/chat/openai/)
+
+### Google translate API
+
+The "translate" functions are based on Google Translate API v3, which does not support API KEY authentication: [Authenticate to Cloud Translation.](https://cloud.google.com/translate/docs/authentication) 
+
+To use the translation function, credential needs to be configured using [gcloud](https://cloud.google.com/translate/docs/authentication#client-libs).
 
 For detailed instructions on how to use llm_political_analysis, please refer to the [documentation](https://github.com/tvashtar/llm_political_analysis/wiki).
 

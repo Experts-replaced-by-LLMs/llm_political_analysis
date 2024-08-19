@@ -62,14 +62,15 @@ def read_gcs_file(
 
 
 def list_gcs_folder(
-        blob_name,
+        prefix,
         bucket_name="llms-as-experts",
-        project="llms-as-experts"
+        project="llms-as-experts",
+        delimiter=None
 ):
     storage_client = storage.Client(project=project)
     return [
         str(blob.name)
-        for blob in storage_client.list_blobs(bucket_name, prefix=blob_name)
+        for blob in storage_client.list_blobs(bucket_name, prefix=prefix, delimiter=delimiter)
     ]
 
 

@@ -9,7 +9,7 @@ from langchain_google_community import GoogleTranslateTransformer
 
 def truncate_text(text, limit=100000):
     """
-    A simple function to truncate input text meet length requirements of Google translation's language detection API.
+    A simple function to truncate input text to meet the length requirements of Google translation's language detection API.
 
     Args:
         text (str): Text to be truncated.
@@ -41,8 +41,10 @@ def detect_language(
         parent=parent,
         mime_type="text/plain",
     )
-    source_language_code = response.languages[0].language_code
-    return source_language_code
+    try:
+        return response.languages[0].language_code
+    except Exception:
+        return None
 
 
 def batch_translate_text(

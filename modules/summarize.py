@@ -1,4 +1,5 @@
 import os.path
+import re
 import time
 
 from langchain_anthropic import ChatAnthropic
@@ -9,8 +10,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage
 
-from . import openai_model_list, claude_model_list, gemini_model_list, ollama_model_list
-from .prompts import load_prompts
+from llm_political_analysis.modules import openai_model_list, claude_model_list, gemini_model_list, ollama_model_list
+from llm_political_analysis.modules.prompts import load_prompts
 
 
 def summarize_text(
@@ -72,9 +73,9 @@ def summarize_text(
             raise ValueError("To use ollama model, set OLLAMA_URL variable.")
         llm = ChatOllama(temperature=0, num_predict=max_tokens, model=model, base_url=ollama_url)
     else:
-        print("You've selected a model that is not available.")
-        print(
-            f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
+        raise Exception(
+            f"You've selected a model that is not available.\nPlease select from the following models: {openai_model_list + claude_model_list + gemini_model_list}"
+        )
     print(f"Using {model} for summarization.")
 
     # Summarize each chunk
@@ -115,6 +116,7 @@ def summarize_text(
         try:
             tokens_used += summary.response_metadata['token_usage']['prompt_tokens']
         except:
+            # Ollama model does not have token usage. Nothing needs to be done.
             pass
         print(f'Summarized so far: {len(summaries)} out of {len(chunks)} chunks', end='\r')
     print('\n', end='\r')
@@ -179,10 +181,16 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
     else:
         length = 'long'
 
+    # Format model name for output
+    model_name = re.sub(r'[-_.:]', '', model)
     if len(issue_areas) > 1:
-        summary_file_name = os.path.join(output_dir, f"summary_{length}_multi_issue__{input_filename}.txt")
+        summary_file_name = os.path.join(
+            output_dir, f"summary_{model_name}_{length}_multi_issue__{input_filename}.txt"
+        )
     else:
-        summary_file_name = os.path.join(output_dir, f"summary_{length}_{issue_areas[0]}__{input_filename}.txt")
+        summary_file_name = os.path.join(
+            output_dir, f"summary_{model_name}_{length}_{issue_areas[0]}__{input_filename}.txt"
+        )
 
     # Check if the summary file already exists, and reuses it if requested, exiting early
     if if_exists == 'reuse':

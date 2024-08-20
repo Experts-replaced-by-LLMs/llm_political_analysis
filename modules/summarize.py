@@ -1,15 +1,22 @@
 import os.path
 import time
 
+from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage
 
-from .prompts import policy_areas
+from . import openai_model_list, claude_model_list, gemini_model_list, ollama_model_list
+from .prompts import load_prompts
 
 
-def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500,1000), debug=False):
+def summarize_text(
+        text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500, 1000), debug=False,
+        max_tokens_factor=1.0, prompt_version=None
+):
     """
     Summarizes the given text based on the specified issue areas using a language model.
     This approach creates all the summaries in one pass to avoid repeating the summarization process.
@@ -22,6 +29,8 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
         overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.
         summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
         debug (bool, optional): Should debug information be printed. Defaults to False.
+        max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*max_tokens_factor
+        prompt_version (str, optional): The prompt version to be used.
 
     Returns:
         str: The final summary of the text.
@@ -35,25 +44,38 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
     chunks = text_splitter.split_text(text)
 
     # Craft the prompt templates
-    system_template_string = '''
-        You are an expert political analyst. Please summarize the following political manifesto. You should detect the initial language and output the summaries in English.
-        The summary should highlight key points and policy positions specifically related to the following topics, as these will be evaluated later:
+    # Load summarize prompts
+    summarize_prompts = load_prompts("summarize", version=prompt_version)
+    system_template_string = summarize_prompts["system_template_string"]
+    human_template_string = summarize_prompts["human_template_string"]
+    policy_areas = summarize_prompts["policy_areas"]
 
-        {issue_areas}
-
-        Aim for a concise summary of around {min_size}-{max_size} words that covers these key policy areas, and be sure they are all present on the original text.
-        Give bullet points for each area, and format the output as plaintext. 
-        '''
     system_template = PromptTemplate(template=system_template_string)
-    human_template = PromptTemplate(template='Please summarize the following text:\n{text}')
+    human_template = PromptTemplate(template=human_template_string)
 
-    issue_area_dict = {issue:policy_areas.get(issue, 'general policy issues') for issue in issue_areas}
+    issue_area_dict = {issue: policy_areas.get(issue, 'general policy issues') for issue in issue_areas}
     issue_area_descriptions = [f"{issue}: {description}" for issue, description in issue_area_dict.items()]
-    issue_list_string = "\n".join([f"{i+1}. {area}" for i, area in enumerate(issue_area_descriptions)])
-
+    issue_list_string = "\n".join([f"{i + 1}. {area}" for i, area in enumerate(issue_area_descriptions)])
 
     # Setup the LLM
-    llm=ChatOpenAI(temperature=0, max_tokens=summary_size[1], model_name=model)
+    # llm = ChatOpenAI(temperature=0, max_tokens=summary_size[1] * max_tokens_factor, model_name=model)
+    max_tokens = summary_size[1] * max_tokens_factor
+    if model in openai_model_list:
+        llm = ChatOpenAI(temperature=0, max_tokens=max_tokens, model_name=model)
+    elif model in claude_model_list:
+        llm = ChatAnthropic(temperature=0, max_tokens=max_tokens, model_name=model)
+    elif model in gemini_model_list:
+        llm = ChatGoogleGenerativeAI(temperature=0, max_tokens=max_tokens, model=model)
+    elif model in ollama_model_list:
+        ollama_url = os.getenv("OLLAMA_URL")
+        if not ollama_url:
+            raise ValueError("To use ollama model, set OLLAMA_URL variable.")
+        llm = ChatOllama(temperature=0, num_predict=max_tokens, model=model, base_url=ollama_url)
+    else:
+        print("You've selected a model that is not available.")
+        print(
+            f"Please select from the following models: {openai_model_list + claude_model_list + gemini_model_list}")
+    print(f"Using {model} for summarization.")
 
     # Summarize each chunk
     summaries = []
@@ -63,8 +85,8 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
 
     for chunk in chunks:
         # This handling is needed for the input rate limit, for gpt-4o thats 30k tokens per minute for tier 1, 800k tokens per minute for tier 3
-        if tokens_used + len(chunk)/4 > token_limit:
-            
+        if tokens_used + len(chunk) / 4 > token_limit:
+
             elapsed_time = time.time() - start_time
             time_to_wait = 60 - elapsed_time
             if time_to_wait > 0:
@@ -73,14 +95,27 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
             tokens_used = 0
             start_time = time.time()
 
-        summarize_prompt = [SystemMessage(content=system_template.format(issue_areas=issue_list_string, min_size=summary_size[0], max_size=summary_size[1])),
-                        HumanMessage(content=human_template.format(text=chunk))] 
+        summarize_prompt = [
+            SystemMessage(
+                content=system_template.format(
+                    issue_areas=issue_list_string,
+                    min_size=summary_size[0],
+                    max_size=summary_size[1]
+                )),
+            HumanMessage(
+                content=human_template.format(text=chunk)
+            )
+        ]
+
         if debug:
             print('Prompt:', summarize_prompt)
 
         summary = llm.invoke(summarize_prompt)
         summaries.append(summary.content)
-        tokens_used += summary.response_metadata['token_usage']['prompt_tokens']
+        try:
+            tokens_used += summary.response_metadata['token_usage']['prompt_tokens']
+        except:
+            pass
         print(f'Summarized so far: {len(summaries)} out of {len(chunks)} chunks', end='\r')
     print('\n', end='\r')
 
@@ -88,8 +123,17 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
     if len(summaries) > 1:
         print('Combining summaries into one final summary')
         final_summaries = " ".join(summaries)
-        final_summarize_prompt = [SystemMessage(content=system_template.format(issue_areas=issue_list_string, min_size=summary_size[0], max_size=summary_size[1])),
-                        HumanMessage(content=human_template.format(text=final_summaries))] 
+        final_summarize_prompt = [
+            SystemMessage(
+                content=system_template.format(
+                    issue_areas=issue_list_string,
+                    min_size=summary_size[0],
+                    max_size=summary_size[1]
+                )),
+            HumanMessage(
+                content=human_template.format(text=final_summaries)
+            )
+        ]
         final_summary = llm.invoke(final_summarize_prompt).content
     else:
         final_summary = summaries[0]
@@ -97,9 +141,10 @@ def summarize_text(text, issue_areas, model="gpt-4o", chunk_size=100000, overlap
     print(f'Final summary length: {len(final_summary)} characters \n')
     return final_summary
 
+
 def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", model="gpt-4o",
-                   chunk_size=100000, overlap=2500, summary_size=(500,1000), if_exists='overwrite',
-                   save_summary=True, debug=False):
+                   chunk_size=100000, overlap=2500, summary_size=(500, 1000), if_exists='overwrite',
+                   save_summary=True, debug=False, max_tokens_factor=1.0, prompt_version=None):
     """
     Summarizes the text in the given file based on the specified issue area using a language model.
 
@@ -114,6 +159,8 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
         if_exists (str, optional): What to do if the summary file already exists. Options are 'overwrite', 'reuse' Defaults to 'overwrite'
         save_summary (bool, optional): Should the summary be saved to a file. Defaults to True.
         debug (bool, optional): Should debug information be printed. Defaults to False.
+        max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*max_tokens_factor
+        prompt_version (str, optional): The prompt version to be used.
 
     Returns:
         str: The final summary of the text.
@@ -147,7 +194,10 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
     # Main summarization process
     with open(file_path, "r", encoding="utf-8") as file:
         text = file.read()
-    summary = summarize_text(text, issue_areas, model=model, chunk_size=chunk_size, overlap=overlap, summary_size=summary_size, debug=debug)
+    summary = summarize_text(
+        text, issue_areas, model=model, chunk_size=chunk_size, overlap=overlap, summary_size=summary_size, debug=debug,
+        max_tokens_factor=max_tokens_factor, prompt_version=prompt_version
+    )
     if save_summary:
         print(f"Saving summary to {summary_file_name}")
         with open(summary_file_name, "w", encoding="utf-8") as file:

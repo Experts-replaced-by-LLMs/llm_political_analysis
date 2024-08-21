@@ -14,6 +14,23 @@ from llm_political_analysis.modules import openai_model_list, claude_model_list,
 from llm_political_analysis.modules.prompts import load_prompts
 
 
+class Summary(str):
+
+    def __new__(cls, value, original_text: str, **kwargs):
+        obj = str.__new__(cls, value, **kwargs)
+        obj.original_text = original_text
+        obj.original_length = len(original_text)
+        return obj
+
+
+class SummaryResponse(str):
+
+    def __new__(cls, value, intermediate_summaries = None, **kwargs):
+        obj = str.__new__(cls, value, **kwargs)
+        obj.intermediate_summaries = intermediate_summaries
+        return obj
+
+
 def summarize_text(
         text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500, 1000), debug=False,
         max_tokens_factor=1.0, prompt_version=None
@@ -26,7 +43,7 @@ def summarize_text(
         text (str): The text to be summarized.
         issue_areas (list): The issue areas related to the text.
         model (str, optional): The name of the language model to be used for summarization. Defaults to "gpt-4o".
-        chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000.
+        chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000. Set to 0 to disable chunk.
         overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.
         summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
         debug (bool, optional): Should debug information be printed. Defaults to False.
@@ -40,9 +57,12 @@ def summarize_text(
     if isinstance(issue_areas, str):
         issue_areas = [issue_areas]
 
-    # Split the text into manageable chunks
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
-    chunks = text_splitter.split_text(text)
+    if chunk_size > 0:
+        # Split the text into manageable chunks
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
+        chunks = text_splitter.split_text(text)
+    else:
+        chunks = [text]
 
     # Craft the prompt templates
     # Load summarize prompts
@@ -112,7 +132,8 @@ def summarize_text(
             print('Prompt:', summarize_prompt)
 
         summary = llm.invoke(summarize_prompt)
-        summaries.append(summary.content)
+        # summaries.append(summary.content)
+        summaries.append(Summary(summary.content, chunk))
         try:
             tokens_used += summary.response_metadata['token_usage']['prompt_tokens']
         except:
@@ -141,7 +162,7 @@ def summarize_text(
         final_summary = summaries[0]
 
     print(f'Final summary length: {len(final_summary)} characters \n')
-    return final_summary
+    return SummaryResponse(final_summary, intermediate_summaries=summaries)
 
 
 def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", model="gpt-4o",

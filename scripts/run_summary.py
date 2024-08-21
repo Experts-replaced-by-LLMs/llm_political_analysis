@@ -21,11 +21,14 @@ parser.add_argument("-a", "--all",
                     action=BooleanOptionalAction, dest="all_issue", default=False,
                     help="Whether to summarize text on all issues all at once.")
 parser.add_argument("-o", "--output-dir", dest="output_dir",
-                    help="The output directory.")
+                    help="The base output directory.")
 parser.add_argument("-i", "--input-dir", nargs="*", dest="input_dir",
                     help="A list of the input directories. Can be both full text or summary. Text files in the directories will be pass to the analyze function.")
 parser.add_argument("-t", "--tag", dest="tag", default="",
                     help="Tag for this run.")
+parser.add_argument("-n", "--no-subfolder",
+                    action=BooleanOptionalAction, dest="no_subfolder", default=False,
+                    help="Don't create a subfolder in the output directory.")
 parser.add_argument("-s", "--size", type=int,
                     dest="summary_size", default=[300, 400], nargs="*",
                     help="Summary size. Default to [300, 400]")
@@ -49,15 +52,18 @@ if __name__ == "__main__":
     # Load API keys from env
     load_dotenv()
 
-    # Get all run arguments
-    args = parser.parse_args()
-
     # Timestamp as the output key
     timestamp = f"{date.today()}-{int(time.time())}"
-    output_name = f"{timestamp}{'-'+args.tag if args.tag else ''}"
+    # Get all run arguments
+    args = parser.parse_args()
+    print(args)
     output_dir = os.path.join(
-        os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "output", output_name
-    ) if args.output_dir is None else os.path.join(args.output_dir, output_name)
+        os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "output"
+    ) if args.output_dir is None else args.output_dir
+    if not args.no_subfolder:
+        output_name = f"{timestamp}{'-'+args.tag if args.tag else ''}"
+        output_dir = os.path.join(output_dir, output_name)
+        os.makedirs(output_dir)
     models = [model_name_alias.get(name, name) for name in args.model] if args.model else args.model
     summary_size = args.summary_size
     max_tokens_factor = args.max_tokens_factor
@@ -71,7 +77,7 @@ if __name__ == "__main__":
     args_dict["model"] = models
     args_dict["timestamp"] = timestamp
     args_dict["output_dir"] = output_dir
-    os.makedirs(output_dir)
+
     with open(os.path.join(output_dir, "args.json"), "w", encoding="utf-8") as f:
         f.write(json.dumps(args_dict))
 
@@ -89,11 +95,13 @@ if __name__ == "__main__":
             if all_issue:
                 summarize_file(
                     filepath, issue_areas, output_dir, summary_size=summary_size, model=model,
-                    max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug
+                    max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
+                    if_exists="reuse"
                 )
             else:
                 for issue in issue_areas:
                     summarize_file(
                         filepath, issue, output_dir, summary_size=summary_size, model=model,
-                        max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug
+                        max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
+                        if_exists="reuse"
                     )

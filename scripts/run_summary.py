@@ -78,8 +78,9 @@ if __name__ == "__main__":
     args_dict["timestamp"] = timestamp
     args_dict["output_dir"] = output_dir
 
-    with open(os.path.join(output_dir, "args.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(output_dir, "args.json"), "a", encoding="utf-8") as f:
         f.write(json.dumps(args_dict))
+        f.write("\n")
 
     # Get absolute path of input files
     input_file_list = []

@@ -35,6 +35,9 @@ parser.add_argument("-s", "--size", type=int,
 parser.add_argument("-f", "--factor", type=float,
                     dest="max_tokens_factor", default=1.0,
                     help="Max tokens factor. Default to 1.0")
+parser.add_argument("-c", "--chunk-size", type=int,
+                    dest="chunk_size", default=100000,
+                    help="Summary chunk size. Set 0 to disable chunking.")
 parser.add_argument("-v", "--prompt-version", dest="prompt_version", default="",
                     help="Prompt version")
 parser.add_argument("-g", "--debug",
@@ -67,6 +70,7 @@ if __name__ == "__main__":
     models = [model_name_alias.get(name, name) for name in args.model] if args.model else args.model
     summary_size = args.summary_size
     max_tokens_factor = args.max_tokens_factor
+    chunk_size = args.chunk_size
     all_issue = args.all_issue
     issue_areas = args.issue_areas
     prompt_version = args.prompt_version
@@ -96,6 +100,7 @@ if __name__ == "__main__":
             if all_issue:
                 summarize_file(
                     filepath, issue_areas, output_dir, summary_size=summary_size, model=model,
+                    chunk_size=chunk_size,
                     max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
                     if_exists="reuse"
                 )
@@ -103,6 +108,7 @@ if __name__ == "__main__":
                 for issue in issue_areas:
                     summarize_file(
                         filepath, issue, output_dir, summary_size=summary_size, model=model,
+                        chunk_size=chunk_size,
                         max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
                         if_exists="reuse"
                     )

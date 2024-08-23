@@ -1,6 +1,7 @@
 import os.path
 import re
 import time
+import anthropic
 
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,7 +11,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage
 
-from llm_political_analysis.modules import openai_model_list, claude_model_list, gemini_model_list, ollama_model_list
+from llm_political_analysis.modules import openai_model_list, claude_model_list, gemini_model_list, ollama_model_list, \
+    per_minute_token_limit
 from llm_political_analysis.modules.prompts import load_prompts
 
 
@@ -96,13 +98,15 @@ def summarize_text(
         raise Exception(
             f"You've selected a model that is not available.\nPlease select from the following models: {openai_model_list + claude_model_list + gemini_model_list}"
         )
-    print(f"Using {model} for summarization.")
 
     # Summarize each chunk
     summaries = []
     tokens_used = 0
-    token_limit = 800000
+    # token_limit = 800000
+    token_limit = per_minute_token_limit.get(model, 800000)
     start_time = time.time()
+
+    print(f"Using {model} for summarization. Token limit: {token_limit}/min")
 
     for chunk in chunks:
         # This handling is needed for the input rate limit, for gpt-4o thats 30k tokens per minute for tier 1, 800k tokens per minute for tier 3
@@ -111,7 +115,7 @@ def summarize_text(
             elapsed_time = time.time() - start_time
             time_to_wait = 60 - elapsed_time
             if time_to_wait > 0:
-                print(f'Waiting for {time_to_wait:.0f} seconds to avoid token limit')
+                print(f'Waiting for {time_to_wait:.0f} seconds to avoid token limit. Tokens used: {tokens_used}')
                 time.sleep(time_to_wait)
             tokens_used = 0
             start_time = time.time()
@@ -131,7 +135,14 @@ def summarize_text(
         if debug:
             print('Prompt:', summarize_prompt)
 
-        summary = llm.invoke(summarize_prompt)
+        try:
+            summary = llm.invoke(summarize_prompt)
+        except anthropic.RateLimitError:
+            print("Anthropic rate limit exceeded. Waiting for 1 minute ...")
+            time.sleep(60)
+            print("Retry Anthropic invoke.")
+            summary = llm.invoke(summarize_prompt)
+
         # summaries.append(summary.content)
         summaries.append(Summary(summary.content, chunk))
         try:
@@ -162,6 +173,7 @@ def summarize_text(
         final_summary = summaries[0]
 
     print(f'Final summary length: {len(final_summary)} characters \n')
+
     return SummaryResponse(final_summary, intermediate_summaries=summaries)
 
 

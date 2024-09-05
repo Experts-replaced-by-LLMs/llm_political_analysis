@@ -43,6 +43,9 @@ parser.add_argument("-v", "--prompt-version", dest="prompt_version", default="",
 parser.add_argument("-g", "--debug",
                     action=BooleanOptionalAction, dest="debug", default=False,
                     help="Debug flag.")
+parser.add_argument("-l", "--log",
+                    action=BooleanOptionalAction, dest="save_log", default=True,
+                    help="Save log.")
 
 model_name_alias = {
     "gpt": "gpt-4o",
@@ -75,6 +78,7 @@ if __name__ == "__main__":
     issue_areas = args.issue_areas
     prompt_version = args.prompt_version
     debug = args.debug
+    save_log = args.save_log
 
     # Create the output folder and log run args
     args_dict = args.__dict__
@@ -102,7 +106,7 @@ if __name__ == "__main__":
                     filepath, issue_areas, output_dir, summary_size=summary_size, model=model,
                     chunk_size=chunk_size,
                     max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
-                    if_exists="reuse"
+                    if_exists="reuse", save_log=save_log
                 )
             else:
                 for issue in issue_areas:
@@ -110,5 +114,5 @@ if __name__ == "__main__":
                         filepath, issue, output_dir, summary_size=summary_size, model=model,
                         chunk_size=chunk_size,
                         max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
-                        if_exists="reuse"
+                        if_exists="reuse", save_log=save_log
                     )

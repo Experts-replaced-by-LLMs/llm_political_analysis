@@ -1,6 +1,8 @@
 import os.path
 import re
 import time
+import pickle
+
 import anthropic
 
 from langchain_anthropic import ChatAnthropic
@@ -16,26 +18,9 @@ from llm_political_analysis.modules import openai_model_list, claude_model_list,
 from llm_political_analysis.modules.prompts import load_prompts
 
 
-class Summary(str):
-
-    def __new__(cls, value, original_text: str, **kwargs):
-        obj = str.__new__(cls, value, **kwargs)
-        obj.original_text = original_text
-        obj.original_length = len(original_text)
-        return obj
-
-
-class SummaryResponse(str):
-
-    def __new__(cls, value, intermediate_summaries = None, **kwargs):
-        obj = str.__new__(cls, value, **kwargs)
-        obj.intermediate_summaries = intermediate_summaries
-        return obj
-
-
 def summarize_text(
         text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500, 1000), debug=False,
-        max_tokens_factor=1.0, prompt_version=None
+        max_tokens_factor=1.0, prompt_version=None, return_log=False
 ):
     """
     Summarizes the given text based on the specified issue areas using a language model.
@@ -51,6 +36,7 @@ def summarize_text(
         debug (bool, optional): Should debug information be printed. Defaults to False.
         max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*max_tokens_factor
         prompt_version (str, optional): The prompt version to be used.
+        return_log (bool, optional): Whether to return log information. Defaults to False.
 
     Returns:
         str: The final summary of the text.
@@ -99,6 +85,7 @@ def summarize_text(
             f"You've selected a model that is not available.\nPlease select from the following models: {openai_model_list + claude_model_list + gemini_model_list}"
         )
 
+    logs = []
     # Summarize each chunk
     summaries = []
     tokens_used = 0
@@ -137,14 +124,15 @@ def summarize_text(
 
         try:
             summary = llm.invoke(summarize_prompt)
+            logs.append((summarize_prompt, summary))
         except anthropic.RateLimitError:
             print("Anthropic rate limit exceeded. Waiting for 1 minute ...")
             time.sleep(60)
             print("Retry Anthropic invoke.")
             summary = llm.invoke(summarize_prompt)
+            logs.append((summarize_prompt, summary))
 
-        # summaries.append(summary.content)
-        summaries.append(Summary(summary.content, chunk))
+        summaries.append(summary.content)
         try:
             tokens_used += summary.response_metadata['token_usage']['prompt_tokens']
         except:
@@ -169,17 +157,20 @@ def summarize_text(
             )
         ]
         final_summary = llm.invoke(final_summarize_prompt).content
+        logs.append((final_summarize_prompt, final_summary))
     else:
         final_summary = summaries[0]
 
     print(f'Final summary length: {len(final_summary)} characters \n')
 
-    return SummaryResponse(final_summary, intermediate_summaries=summaries)
+    if return_log:
+        return final_summary, logs
+    return final_summary
 
 
 def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", model="gpt-4o",
                    chunk_size=100000, overlap=2500, summary_size=(500, 1000), if_exists='overwrite',
-                   save_summary=True, debug=False, max_tokens_factor=1.0, prompt_version=None):
+                   save_summary=True, debug=False, max_tokens_factor=1.0, prompt_version=None, save_log=False):
     """
     Summarizes the text in the given file based on the specified issue area using a language model.
 
@@ -196,6 +187,7 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
         debug (bool, optional): Should debug information be printed. Defaults to False.
         max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*max_tokens_factor
         prompt_version (str, optional): The prompt version to be used.
+        save_log (bool, optional): Should the log information be saved to a file. Defaults to False.
 
     Returns:
         str: The final summary of the text.
@@ -237,8 +229,15 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
         text = file.read()
     summary = summarize_text(
         text, issue_areas, model=model, chunk_size=chunk_size, overlap=overlap, summary_size=summary_size, debug=debug,
-        max_tokens_factor=max_tokens_factor, prompt_version=prompt_version
+        max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, return_log=save_log
     )
+    if save_log:
+        summary, logs = summary
+        log_file_name = os.path.join(
+            output_dir, f"summary_log_{model_name}_{length}_{issue_areas[0]}__{input_filename}.pkl"
+        )
+        with open(log_file_name, 'wb') as f:
+            pickle.dump(logs, f)
     if save_summary:
         print(f"Saving summary to {summary_file_name}")
         with open(summary_file_name, "w", encoding="utf-8") as file:

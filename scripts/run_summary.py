@@ -101,18 +101,24 @@ if __name__ == "__main__":
 
     for filepath in input_file_list:
         for model in models:
-            if all_issue:
-                summarize_file(
-                    filepath, issue_areas, output_dir, summary_size=summary_size, model=model,
-                    chunk_size=chunk_size,
-                    max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
-                    if_exists="reuse", save_log=save_log
-                )
-            else:
-                for issue in issue_areas:
+            try:
+                if all_issue:
                     summarize_file(
-                        filepath, issue, output_dir, summary_size=summary_size, model=model,
+                        filepath, issue_areas, output_dir, summary_size=summary_size, model=model,
                         chunk_size=chunk_size,
                         max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
                         if_exists="reuse", save_log=save_log
                     )
+                else:
+                    for issue in issue_areas:
+                        summarize_file(
+                            filepath, issue, output_dir, summary_size=summary_size, model=model,
+                            chunk_size=chunk_size,
+                            max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, debug=debug,
+                            if_exists="reuse", save_log=save_log
+                        )
+            except Exception as e:
+                with open(os.path.join(output_dir, "args.json"), "a", encoding="utf-8") as f:
+                    f.write(json.dumps({"model": model, "file": os.path.basename(filepath), "error": str(e)}))
+                    f.write("\n")
+        

@@ -1,5 +1,5 @@
 openai_model_list = [
-    'gpt-3.5-turbo', 'gpt-4o', 'gpt-4'
+    'gpt-3.5-turbo', 'gpt-4o', 'gpt-4', 'gpt-4o-2024-08-06'
 ]
 claude_model_list = [
     'claude-3-5-sonnet-20240620', 'claude-3-opus-20240229',

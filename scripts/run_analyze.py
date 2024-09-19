@@ -101,15 +101,24 @@ if __name__ == "__main__":
             res = existing_output_df[(existing_output_df["file"]==filepath)&(existing_output_df["issue"]==issue_to_analyze)]
             models_to_analyze = list(set(models_to_analyze).difference(res["model"].tolist()))
         if len(models_to_analyze) > 0:
-            for model in models_to_analyze:
-                bulk_analyze_text(
-                    [filepath],
-                    models_to_analyze,
-                    [issue_to_analyze],
-                    summarize=False,
-                    override_persona_and_encouragement=override_persona_and_encouragement,
-                    parse_retries=0,
-                    output_dir=output_dir
-                )
+            # for model in models_to_analyze:
+            #     bulk_analyze_text(
+            #         [filepath],
+            #         models_to_analyze,
+            #         [issue_to_analyze],
+            #         summarize=False,
+            #         override_persona_and_encouragement=override_persona_and_encouragement,
+            #         parse_retries=0,
+            #         output_dir=output_dir
+            #     )
+            bulk_analyze_text(
+                [filepath],
+                models_to_analyze,
+                [issue_to_analyze],
+                summarize=False,
+                override_persona_and_encouragement=override_persona_and_encouragement,
+                parse_retries=0,
+                output_dir=output_dir
+            )
         else:
             print(f"Skipping: {[issue_to_analyze, os.path.basename(filepath)]}")

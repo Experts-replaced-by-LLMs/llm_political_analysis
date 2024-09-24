@@ -1,4 +1,3 @@
-import json
 import yaml
 import os
 
@@ -76,7 +75,11 @@ def get_prompts(issue_area, text, override_persona_and_encouragement=None):
         return prompts
 
 
-def get_few_shot_prompt(issue_area, text):
+def get_few_shot_prompt(
+        issue_area, text,
+        example_csv_filepath=None,
+        example_search_path=None
+):
     """
     Generate prompt for analyzing a manifesto based on the given issue area.
 
@@ -87,10 +90,16 @@ def get_few_shot_prompt(issue_area, text):
     Args:
         issue_area (str): The issue area for which prompts are generated.
         text (str): The text to be analyzed.
+        example_csv_filepath (str): Path of example metadata csv file.
+        example_search_path (str): Path of example summaries search directory.
 
     Returns:
         list: A list of messages for the few-shot learning task.
     """
+    if not example_csv_filepath:
+        example_csv_filepath = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "few_shot_prompts", "few_shot_prompt_setup.csv")
+    if not example_search_path:
+        example_search_path = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "data", "few_shot_prompts")
 
     prompts_analyze = load_prompts("analyze")
     personas = prompts_analyze["personas"]
@@ -99,7 +108,9 @@ def get_few_shot_prompt(issue_area, text):
     system_template_string = prompts_analyze["system_template_string"]
     human_template_string = prompts_analyze["human_template_string"]
 
-    examples = pd.read_csv('../data/ches_scores/final_prompt_setup_new.csv',
+    # examples = pd.read_csv('../data/ches_scores/final_prompt_setup_new.csv',
+    #                        dtype={'Expert mean': str}, keep_default_na=False)
+    examples = pd.read_csv(example_csv_filepath,
                            dtype={'Expert mean': str}, keep_default_na=False)
     issue_examples = examples[examples['issue'] == issue_area]
 
@@ -117,7 +128,8 @@ def get_few_shot_prompt(issue_area, text):
         persona=persona, encouragement=encouragement, policy_scale=policy_scales[issue_area]))]
     for example in issue_examples.iterrows():
         summary_file_name = example[1]['Calibration File']
-        with open(f'../data/summaries/{summary_file_name}', 'r') as summary_file:
+        # with open(f'../data/summaries/{summary_file_name}', 'r') as summary_file:
+        with open(os.path.join(example_search_path, summary_file_name), 'r') as summary_file:
             summary = summary_file.read()
         prompt.append(HumanMessage(
             content=human_template.format(text=summary)))

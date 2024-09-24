@@ -12,7 +12,7 @@ from datetime import date
 import pandas as pd
 from dotenv import load_dotenv
 
-from llm_political_analysis.modules.analyze import bulk_analyze_text
+from llm_political_analysis.modules.analyze import bulk_analyze_text, bulk_analyze_text_few_shot
 
 parser = ArgumentParser()
 parser.add_argument("-m", "--model", dest="model", nargs="*", default=[],
@@ -34,9 +34,12 @@ parser.add_argument("-p", "--override-persona-and-encouragement", type=int,
 parser.add_argument("-g", "--debug",
                     action=BooleanOptionalAction, dest="debug", default=False,
                     help="Debug flag.")
+parser.add_argument("-f", "--few-shot",
+                    action=BooleanOptionalAction, dest="few_shot", default=False,
+                    help="Whether to use few-shot.")
 
 model_name_alias = {
-    "gpt": "gpt-4o",
+    "gpt": "gpt-4o-2024-08-06",
     "claude": "claude-3-5-sonnet-20240620",
     "gemini": "gemini-1.5-pro-001"
 }
@@ -68,6 +71,7 @@ if __name__ == "__main__":
     models = [model_name_alias.get(name, name) for name in args.model] if args.model else args.model
     prompt_version = args.prompt_version
     debug = args.debug
+    few_shot = args.few_shot
     override_persona_and_encouragement = args.override_persona_and_encouragement
 
     # Create the output folder and log run args
@@ -101,24 +105,25 @@ if __name__ == "__main__":
             res = existing_output_df[(existing_output_df["file"]==filepath)&(existing_output_df["issue"]==issue_to_analyze)]
             models_to_analyze = list(set(models_to_analyze).difference(res["model"].tolist()))
         if len(models_to_analyze) > 0:
-            # for model in models_to_analyze:
-            #     bulk_analyze_text(
-            #         [filepath],
-            #         models_to_analyze,
-            #         [issue_to_analyze],
-            #         summarize=False,
-            #         override_persona_and_encouragement=override_persona_and_encouragement,
-            #         parse_retries=0,
-            #         output_dir=output_dir
-            #     )
-            bulk_analyze_text(
-                [filepath],
-                models_to_analyze,
-                [issue_to_analyze],
-                summarize=False,
-                override_persona_and_encouragement=override_persona_and_encouragement,
-                parse_retries=0,
-                output_dir=output_dir
-            )
+            if few_shot:
+                print("Using few shot ...")
+                bulk_analyze_text_few_shot(
+                    [filepath],
+                    models_to_analyze,
+                    [issue_to_analyze],
+                    summarize=False,
+                    parse_retries=0,
+                    output_dir=output_dir,
+                )
+            else:
+                bulk_analyze_text(
+                    [filepath],
+                    models_to_analyze,
+                    [issue_to_analyze],
+                    summarize=False,
+                    override_persona_and_encouragement=override_persona_and_encouragement,
+                    parse_retries=0,
+                    output_dir=output_dir
+                )
         else:
             print(f"Skipping: {[issue_to_analyze, os.path.basename(filepath)]}")

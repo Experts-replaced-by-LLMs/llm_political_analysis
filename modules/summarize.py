@@ -51,7 +51,6 @@ def summarize_text(
         # Split the text into manageable chunks
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
         chunks = text_splitter.split_text(text)
-        return chunks
     else:
         chunks = [text]
 

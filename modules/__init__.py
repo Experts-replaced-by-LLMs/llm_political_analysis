@@ -6,7 +6,8 @@ claude_model_list = [
     'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'
 ]
 gemini_model_list = [
-    'gemini-1.5-pro-001'
+    'gemini-1.5-pro-001',
+    'gemini-1.5-pro-002'
 ]
 ollama_model_list = [
     'llama3.1:8b-instruct-fp16', 'llama3.1:8b-instruct-q8_0', 'llama3.1:70b-instruct-q8_0',

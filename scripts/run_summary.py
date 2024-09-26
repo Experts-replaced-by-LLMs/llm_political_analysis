@@ -90,8 +90,6 @@ if __name__ == "__main__":
     debug = args.debug
     save_log = args.save_log
 
-    exit(0)
-
     # Create the output folder and log run args
     args_dict = args.__dict__
     args_dict["model"] = models

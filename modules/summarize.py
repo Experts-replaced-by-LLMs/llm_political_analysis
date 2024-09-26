@@ -46,6 +46,8 @@ def summarize_text(
         issue_areas = [issue_areas]
 
     if chunk_size > 0:
+        if type(chunk_size) is float:
+            chunk_size = int(len(text)*chunk_size)
         # Split the text into manageable chunks
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
         chunks = text_splitter.split_text(text)

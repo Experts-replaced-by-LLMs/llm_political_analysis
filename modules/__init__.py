@@ -15,7 +15,7 @@ ollama_model_list = [
 ]
 
 per_minute_token_limit = {
-    "claude-3-5-sonnet-20240620": 160000,
+    "claude-3-5-sonnet-20240620": 400000,
     "claude-3-opus-20240229": 80000,
     "claude-3-sonnet-20240229": 160000,
     "claude-3-haiku-20240307": 200000,

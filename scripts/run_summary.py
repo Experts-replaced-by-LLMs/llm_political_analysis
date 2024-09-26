@@ -50,7 +50,7 @@ parser.add_argument("-l", "--log",
 model_name_alias = {
     "gpt": "gpt-4o",
     "claude": "claude-3-5-sonnet-20240620",
-    "gemini": "gemini-1.5-pro-001"
+    "gemini": "gemini-1.5-pro-002"
 }
 
 

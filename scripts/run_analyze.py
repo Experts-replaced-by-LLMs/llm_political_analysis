@@ -41,7 +41,7 @@ parser.add_argument("-f", "--few-shot",
 model_name_alias = {
     "gpt": "gpt-4o-2024-08-06",
     "claude": "claude-3-5-sonnet-20240620",
-    "gemini": "gemini-1.5-pro-001"
+    "gemini": "gemini-1.5-pro-002"
 }
 
 

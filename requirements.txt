@@ -11,3 +11,4 @@ seaborn>=0.13
 google-cloud-translate>=3.15.5
 google-cloud-storage>=2.18.1
 langchain-google-community>=1.0.7
+langchain-ollama>=0.1.1

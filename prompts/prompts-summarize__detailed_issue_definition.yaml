@@ -1,0 +1,27 @@
+policy_areas:
+  european_union: |
+    The summary should clearly outline the party's stance on the European Union, ranging from strong pro-EU integration to strong anti-EU/stance for withdrawal. The summary should capture the nuances in these policies, including the extent of political and economic integration, national sovereignty, support for EU-wide policies, and areas of cooperation such as defense, foreign policy, and fiscal matters. It should emphasize the party's position on EU membership, the balance between EU powers and national control, and the approach to reforms or withdrawal from the EU.
+  taxation: |
+    The summary should clearly outline the party's stance on the balance between public spending and taxation, ranging from high public spending and high taxation to minimal public spending and low taxation. The summary should capture the nuances in these policies, including the extent of government intervention in the economy, the prioritization of welfare and public services, and the approach to taxation efficiency and burden on individuals and businesses.
+  lifestyle: |
+    The summary should clearly outline the party's stance on social policies, ranging from very liberal to very conservative. The summary should capture the nuances in these policies, including the extent of support for abortion rights, LGBTQ+ rights (such as marriage equality, adoption rights, and anti-discrimination laws), and other progressive or traditional social issues. It should emphasize the party's position on individual freedoms, equality, traditional values, and the legislative measures proposed to advance or restrict these rights.
+  immigration: |
+    The summary should clearly outline the party's stance on immigration policies, ranging from very open to very restrictive. The summary should capture the nuances in these policies, including levels of immigration support, integration programs, security measures, and pathways to citizenship. It should emphasize the party's position on immigration control, refugee intake, economic impacts, and societal integration, including proposed legislative measures to manage immigration levels and their implications.
+  environment: |
+    The summary should clearly outline the party's stance on environmental policies, ranging from very strong to very weak. The summary should capture the nuances in these policies, including targets for reducing greenhouse gas emissions, investments in renewable energy, and the implementation of environmental regulations. It should emphasize the party's position on balancing environmental protection with economic growth, the extent of regulatory measures, and the commitment to international environmental agreements and sustainable practices.
+  decentralization: |
+    The summary should clearly outline the party's stance on the decentralization of political power, ranging from strong pro-decentralization to strong centralization. The summary should capture the nuances in these policies, including the extent of legislative, fiscal, and administrative autonomy granted to regional and local governments. It should emphasize the party's position on the balance between regional self-governance and national coherence, the level of regional autonomy, and the approach to federalism or centralization in policy-making and governance.
+
+system_template_string: |
+  You are an expert political analyst. Please summarize the following political manifesto. You should detect the initial language and output the summaries in English.
+  The summary should highlight key points and policy positions specifically related to the following topics, as these will be evaluated later:
+
+  {issue_areas}
+
+  Aim for a concise summary of around {min_size}-{max_size} words that covers these key policy areas, and be sure they are all present on the original text.
+  Give bullet points for each area, and format the output as plaintext.
+
+human_template_string: |
+  Please summarize the following text:
+  
+  {text}

@@ -1,4 +1,4 @@
-import json
+import yaml
 import os
 
 import pandas as pd
@@ -6,23 +6,27 @@ import pandas as pd
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 
-with open(
-        os.path.join(os.path.abspath(os.path.dirname(
-            os.path.dirname(__file__))), "prompts", "prompts-analyze.json"),
-        "r", encoding="utf-8"
-) as f:
-    prompts_analyze = json.loads(f.read())
 
-personas = prompts_analyze["personas"]
-encouragements = prompts_analyze["encouragements"]
-policy_scales = prompts_analyze["policy_scales"]
+def load_prompts(what, version=None, folder=None):
+    """
+    Load prompts from external yaml file.
+    The filename should be in the following format: prompts-<summarize|analyze>[__{version}].yaml
+        e.g. prompts-summarize__test.yaml, prompts_summarize.yaml
 
-# this brief description of the policy areas is used in the summarization module
-# I colocated it here to be proximate to the scales.
-policy_areas = prompts_analyze["policy_areas"]
+    Args:
+        what (str): One of [summarize, analyze].
+        version (str): The version of the prompts to load, excluding the leading double underscores.
+        folder (str): The folder where to find the prompts file.
+    """
+    if folder is None:
+        # Use default folder
+        folder = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "prompts")
 
-system_template_string = prompts_analyze["system_template_string"]
-human_template_string = prompts_analyze["human_template_string"]
+    prompts_filepath = os.path.join(folder, f"prompts-{what}{'' if not version else f'__{version}'}.yaml")
+    with open(prompts_filepath, "r", encoding="utf-8") as f:
+        prompts = yaml.safe_load(f.read())
+
+    return prompts
 
 
 def get_prompts(issue_area, text, override_persona_and_encouragement=None):
@@ -40,6 +44,14 @@ def get_prompts(issue_area, text, override_persona_and_encouragement=None):
     Returns:
         list: A list of prompts, where each prompt is a list of dictionaries with 'role' and 'content' keys.
     """
+
+    prompts_analyze = load_prompts("analyze")
+    personas = prompts_analyze["personas"]
+    encouragements = prompts_analyze["encouragements"]
+    policy_scales = prompts_analyze["policy_scales"]
+    system_template_string = prompts_analyze["system_template_string"]
+    human_template_string = prompts_analyze["human_template_string"]
+
     system_template = PromptTemplate(template=system_template_string)
     human_template = PromptTemplate(template=human_template_string)
 
@@ -63,7 +75,11 @@ def get_prompts(issue_area, text, override_persona_and_encouragement=None):
         return prompts
 
 
-def get_few_shot_prompt(issue_area, text):
+def get_few_shot_prompt(
+        issue_area, text,
+        example_csv_filepath=None,
+        example_search_path=None
+):
     """
     Generate prompt for analyzing a manifesto based on the given issue area.
 
@@ -74,11 +90,27 @@ def get_few_shot_prompt(issue_area, text):
     Args:
         issue_area (str): The issue area for which prompts are generated.
         text (str): The text to be analyzed.
+        example_csv_filepath (str): Path of example metadata csv file.
+        example_search_path (str): Path of example summaries search directory.
 
     Returns:
         list: A list of messages for the few-shot learning task.
     """
-    examples = pd.read_csv('../data/ches_scores/final_prompt_setup_new.csv',
+    if not example_csv_filepath:
+        example_csv_filepath = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "few_shot_prompts", "few_shot_prompt_setup.csv")
+    if not example_search_path:
+        example_search_path = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "data", "few_shot_prompts")
+
+    prompts_analyze = load_prompts("analyze")
+    personas = prompts_analyze["personas"]
+    encouragements = prompts_analyze["encouragements"]
+    policy_scales = prompts_analyze["policy_scales"]
+    system_template_string = prompts_analyze["system_template_string"]
+    human_template_string = prompts_analyze["human_template_string"]
+
+    # examples = pd.read_csv('../data/ches_scores/final_prompt_setup_new.csv',
+    #                        dtype={'Expert mean': str}, keep_default_na=False)
+    examples = pd.read_csv(example_csv_filepath,
                            dtype={'Expert mean': str}, keep_default_na=False)
     issue_examples = examples[examples['issue'] == issue_area]
 
@@ -96,7 +128,8 @@ def get_few_shot_prompt(issue_area, text):
         persona=persona, encouragement=encouragement, policy_scale=policy_scales[issue_area]))]
     for example in issue_examples.iterrows():
         summary_file_name = example[1]['Calibration File']
-        with open(f'../data/summaries/{summary_file_name}', 'r') as summary_file:
+        # with open(f'../data/summaries/{summary_file_name}', 'r') as summary_file:
+        with open(os.path.join(example_search_path, summary_file_name), 'r') as summary_file:
             summary = summary_file.read()
         prompt.append(HumanMessage(
             content=human_template.format(text=summary)))

@@ -2,8 +2,11 @@ import os.path
 import re
 import time
 import pickle
+import warnings
+from uuid import uuid4
 
 import anthropic
+import pandas as pd
 
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -122,7 +125,8 @@ def summarize_text(
         ]
 
         if debug:
-            print('Prompt:', summarize_prompt)
+            # print('Prompt:', summarize_prompt)
+            return text[:100], [(text[100:200], text[-100:])]
 
         try:
             summary = llm.invoke(summarize_prompt)
@@ -246,3 +250,118 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
             file.write(summary)
 
     return summary
+
+
+def summarize_dataset(
+        dataset_filepath, group, issue_areas, output_dir="../data/summaries/", output_filename="summaries.csv",
+        model="gpt-4o", try_no_chunk=False, chunk_size=100000, overlap=2500, summary_size=(300, 400), if_exists='reuse',
+        debug=False, max_tokens_factor=2.0, prompt_version=None, save_log=False, tag=None
+):
+    """
+
+    Args:
+        dataset_filepath:
+        group:
+        issue_areas:
+        output_dir:
+        output_filename:
+        model:
+        try_no_chunk:
+        chunk_size:
+        overlap:
+        summary_size:
+        if_exists:
+        debug:
+        max_tokens_factor:
+        prompt_version:
+        save_log:
+        tag: To continue a break run, always pass in a unique tag
+
+    Returns:
+
+    """
+    if tag is None:
+        tag = uuid4().hex
+
+    columns = ["filename", "issues", "summary_model", "summary", "timestamp", "tag"]
+
+    if isinstance(issue_areas, str):
+        issue_areas = [issue_areas]
+
+    issue_areas_string = "-".join(issue_areas)
+
+    df_manifesto_dataset = pd.read_csv(dataset_filepath)
+    df_manifesto_dataset = df_manifesto_dataset[df_manifesto_dataset[group] == 1]
+
+    result_filepath = os.path.join(output_dir, output_filename)
+    # print(f"result_filepath: {result_filepath}")
+
+    for _, record in df_manifesto_dataset.iterrows():
+        # from time import sleep
+        # sleep(1)
+
+        if os.path.exists(result_filepath):
+            df_existing_summaries = pd.read_csv(result_filepath)
+        else:
+            df_existing_summaries = pd.DataFrame(columns=columns)
+            df_existing_summaries.to_csv(result_filepath, index=False)
+        new_summaries = []
+
+        existing_rec = df_existing_summaries[
+            (df_existing_summaries["filename"]==record["filename"])&(df_existing_summaries["issues"]==issue_areas_string)&(df_existing_summaries["summary_model"]==model)&(df_existing_summaries["tag"]==tag)
+            ]
+        if existing_rec.shape[0] > 0:
+            if if_exists == "reuse":
+                print(f"Skipping: {record['filename']}")
+                continue
+            elif existing_rec.shape[0] >= 1:
+                warnings.warn(f"Record has multiple existing summaries: {record['filename']}")
+            else:
+                # Remove previous one
+                df_existing_summaries = df_existing_summaries.drop(existing_rec.index)
+
+        print(f"--- Summarizing {record['filename']} ---")
+
+        if try_no_chunk:
+            try:
+                print("Trying summarize without chunk ...")
+                summary = summarize_text(
+                    record["text"], issue_areas, model=model, chunk_size=0, overlap=0, summary_size=summary_size,
+                    debug=debug, max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, return_log=save_log
+                )
+            except Exception as e:
+                if chunk_size>0:
+                    print("Cannot summarize entire document. Trying chunk summarization...")
+                    summary = summarize_text(
+                        record["text"], issue_areas, model=model, chunk_size=chunk_size, overlap=overlap,
+                        summary_size=summary_size,
+                        debug=debug, max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, return_log=save_log
+                    )
+                else:
+                    raise e
+        else:
+            summary = summarize_text(
+                record["text"], issue_areas, model=model, chunk_size=chunk_size, overlap=overlap,
+                summary_size=summary_size,
+                debug=debug, max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, return_log=save_log
+            )
+
+        if save_log:
+            log_paths = os.path.join(output_dir, "logs")
+            if not os.path.exists(log_paths):
+                os.makedirs(log_paths)
+            summary, logs = summary
+            model_name_string = re.sub(r'[-_.:]', '', model)
+            log_file_name = os.path.join(
+                log_paths, f"summary_log_{issue_areas_string}_{tag}_{model_name_string}__{os.path.splitext(record["filename"])[0]}.pkl"
+            )
+            with open(log_file_name, 'wb') as f:
+                pickle.dump(logs, f)
+
+        new_summaries.append([record["filename"], issue_areas_string, model, summary, int(time.time()), tag])
+        if existing_rec.shape[0] > 0:
+            df_new = pd.concat([df_existing_summaries, pd.DataFrame(new_summaries)])
+            df_new.to_csv(result_filepath, mode="w", index=False)
+        else:
+            df_new = pd.DataFrame(new_summaries, columns=columns)
+            df_new.to_csv(result_filepath, mode="a", index=False, header=False)

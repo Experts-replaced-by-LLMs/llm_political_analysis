@@ -7,16 +7,16 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from . import openai_model_list, claude_model_list, gemini_model_list
-from .prompts import get_prompts, get_few_shot_prompt
-from .summarize import summarize_file
+from llm_political_analysis.modules import openai_model_list, claude_model_list, gemini_model_list
+from llm_political_analysis.modules.prompts import get_prompts, get_few_shot_prompt
+from llm_political_analysis.modules.summarize import summarize_file
 
 
 def validate_score(score):
     return score in ['NA', '1', '2', '3', '4', '5', '6', '7']
 
 
-def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=False):
+def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=False, debug=False):
     """
     Analyzes the given text, given a prompt using the specified model.
 
@@ -69,6 +69,11 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
     elif probabilities:
         print(
             f"Probabilities are not available for model {model}, please select a model from the following list: {openai_model_list}")
+
+    if debug:
+        return {'score': -1,
+                'error_message': "TEST MSG",
+                'prompt': prompt_string}
 
     # This is the core call to the model
     try:
@@ -134,7 +139,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
     return response_dict
 
 
-def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, concurrency=3):
+def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, concurrency=3, debug=False):
     """
     Analyzes the given text, given a list of prompts using the specified model.
 
@@ -182,6 +187,12 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     responses = []
     prompt_batches = [prompt_list[i:i + concurrency]
                       for i in range(0, len(prompt_list), concurrency)]
+
+    if debug:
+        return [{'score': -1,
+                 'error_message': "TEST MSG",
+                 'prompt': prompt_list[i]} for i, p in enumerate(prompt_list)]
+
     for prompt_batch in prompt_batches:
         responses += llm.batch(prompt_batch)
 
@@ -225,7 +236,7 @@ def bulk_analyze_text(
         file_list, model_list, issue_list, summarize=True, parse_retries=3, max_retries=7,
         concurrency=3, override_persona_and_encouragement=None, results_file=None,
         output_dir=None, results_file_name="analyze_results.xlsx", if_summary_exists='reuse',
-        summary_size=(500, 1000), summary_max_tokens_factor=1.0
+        summary_size=(500, 1000), summary_max_tokens_factor=1.0, debug=False
 ):
     """
     Analyzes a collection of text files using different models and prompts.
@@ -277,7 +288,7 @@ def bulk_analyze_text(
                 print('---- Analyzing with model: ', model)
 
                 results = analyze_text_with_batch(
-                    prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency)
+                    prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency, debug=debug)
                 results_df = pd.DataFrame(results)
                 results_df['issue'] = issue
                 results_df['model'] = model
@@ -376,6 +387,76 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file=N
                             writer, index=False, sheet_name='Sheet1')
 
                 overall_results.append(results_df)
+
+    final_df = pd.concat(overall_results, axis=0)
+    final_df = final_df.reset_index(drop=True)
+    return final_df
+
+
+def analyze_summary(
+        summary_dataset, model_list, tag=None, results_file=None, csv_chunksize=10,
+        override_persona_and_encouragement=None, parse_retries=3, max_retries=7,
+        use_few_shot=False, output_dir="../data/summaries/", result_file_name="analyze_results.xlsx",
+        debug=False
+):
+    if results_file is None:
+        results_file = os.path.join(output_dir, result_file_name)
+
+    overall_results = []
+    for chunk in pd.read_csv(summary_dataset, chunksize=csv_chunksize):
+        if tag is not None:
+            records = chunk[chunk["tag"] == tag]
+        else:
+            records = chunk
+
+        for record in records.itertuples():
+            print('Analyzing: ', record.filename)
+            issue_list = record.issues.split("-")
+
+            for issue in issue_list:
+                print('-- Analyzing issue: ', issue)
+                if use_few_shot:
+                    prompt = get_few_shot_prompt(issue, record.summary)
+                else:
+                    prompt = get_prompts(issue, record.summary, override_persona_and_encouragement)
+
+                for model in model_list:
+                    print('---- Analyzing with model: ', model)
+
+                    if use_few_shot:
+                        results = analyze_text(
+                            prompt, model, parse_retries=parse_retries, max_retries=max_retries, debug=debug
+                        )
+                        results_df = pd.DataFrame([results])
+                    else:
+                        results = analyze_text_with_batch(
+                            prompt, model, parse_retries=parse_retries, max_retries=max_retries, debug=debug
+                        )
+                        results_df = pd.DataFrame(results)
+                    results_df['filename'] = record.filename
+                    results_df['issue'] = issue
+                    results_df['model'] = model
+                    results_df['summary_model'] = record.summary_model
+                    results_df['tag'] = record.tag
+                    results_df['created_at'] = datetime.now()
+                    results_df = results_df[[
+                        'filename', 'issue', 'summary_model', 'tag', 'model', 'score', 'error_message', 'prompt', 'created_at']]
+
+                    # Writing to Excel as we go to avoid losing data in case of an error
+                    if os.path.exists(results_file):
+                        # Append to existing file
+                        with pd.ExcelWriter(results_file, mode='a', engine='openpyxl',
+                                            if_sheet_exists='overlay') as writer:
+                            results_df.to_excel(
+                                writer, index=False, header=False, sheet_name='Sheet1',
+                                startrow=writer.sheets['Sheet1'].max_row)
+                    else:
+                        # Create a new file
+                        with pd.ExcelWriter(results_file, mode='w', engine='openpyxl') as writer:
+                            results_df.to_excel(
+                                writer, index=False, sheet_name='Sheet1')
+
+                    overall_results.append(results_df)
 
     final_df = pd.concat(overall_results, axis=0)
     final_df = final_df.reset_index(drop=True)

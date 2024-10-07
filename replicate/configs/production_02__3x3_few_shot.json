@@ -1,0 +1,21 @@
+{
+  "tag": "production_02",
+  "dataset": "production",
+  "summary_model": ["gpt-4o-2024-08-06", "claude-3-5-sonnet-20240620", "gemini-1.5-pro-002"],
+  "model": ["gpt-4o-2024-08-06", "claude-3-5-sonnet-20240620", "gemini-1.5-pro-002"],
+  "issue_areas": ["european_union", "taxation", "lifestyle", "immigration", "environment", "decentralization"],
+  "override_persona_and_encouragement": [0, 1],
+  "all_issue": false,
+  "summary_size": [300, 400],
+  "max_tokens_factor": 2.0,
+  "prompt_version": "no_na",
+  "use_few_shot": true,
+  "summary_model_args": {
+    "claude-3-5-sonnet-20240620": {
+      "try_no_chunk": true
+    },
+    "gemini-1.5-pro-002": {
+      "try_no_chunk": true
+    }
+  }
+}

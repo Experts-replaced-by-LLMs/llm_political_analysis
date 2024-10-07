@@ -353,7 +353,7 @@ def summarize_dataset(
             summary, logs = summary
             model_name_string = re.sub(r'[-_.:]', '', model)
             log_file_name = os.path.join(
-                log_paths, f"summary_log_{issue_areas_string}_{tag}_{model_name_string}__{os.path.splitext(record["filename"])[0]}.pkl"
+                log_paths, f"summary_log_{issue_areas_string}_{tag}_{model_name_string}__{os.path.splitext(record['filename'])[0]}.pkl"
             )
             with open(log_file_name, 'wb') as f:
                 pickle.dump(logs, f)

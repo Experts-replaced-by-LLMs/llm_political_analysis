@@ -61,6 +61,7 @@ def load_config(config_path):
             "tag": cfg["tag"],
             "dataset": cfg["dataset"],
             "all_issue": cfg.get("all_issue", False),
+            "use_summary_from": cfg.get("use_summary_from", None),
             "issue_areas": cfg["issue_areas"],
         }
 
@@ -123,13 +124,13 @@ if __name__ == "__main__":
             if use_cfg["all_issue"]:
                 summarize_dataset(
                     dataset_path, use_cfg["dataset"], issue_areas, output_dir=output_dir, output_filename=output_filename,
-                    model=model_name, tag=use_cfg["tag"], debug=debug, save_log=True, **model_args
+                    model=model_name, tag=use_cfg.get("use_summary_from", use_cfg["tag"]), debug=debug, save_log=True, **model_args
                 )
             else:
                 for issue in issue_areas:
                     summarize_dataset(
                         dataset_path, use_cfg["dataset"], issue, output_dir=output_dir, output_filename=output_filename,
-                        model=model_name, tag=use_cfg["tag"], debug=debug, save_log=True, **model_args
+                        model=model_name, tag=use_cfg.get("use_summary_from", use_cfg["tag"]), debug=debug, save_log=True, **model_args
                     )
 
         # Analyzing summaries
@@ -138,7 +139,7 @@ if __name__ == "__main__":
         override_persona_and_encouragement = analyze_model_args["override_persona_and_encouragement"]
         use_few_shot=analyze_model_args["use_few_shot"]
         analyze_summary(
-            os.path.join(output_dir, output_filename), model, tag=use_cfg["tag"],
+            os.path.join(output_dir, output_filename), model, tag=use_cfg.get("use_summary_from", use_cfg["tag"]),
             override_persona_and_encouragement=override_persona_and_encouragement, use_few_shot=use_few_shot,
             output_dir=output_dir, debug=debug
         )

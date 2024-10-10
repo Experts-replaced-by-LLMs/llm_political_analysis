@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     # Build output folder
     output_dir = os.path.join(
-        os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "output", "replicate_prototyping"
+        os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "output", "all_results"
     ) if output_dir is None else output_dir
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)

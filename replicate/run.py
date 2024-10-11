@@ -75,7 +75,6 @@ if __name__ == "__main__":
     timestamp = f"{date.today()}-{int(time.time())}"
     # Get replicate arguments
     args = parser.parse_args()
-    print(args)
     output_dir = args.output_dir
     output_filename = args.output_filename
     dataset_path = args.dataset_path
@@ -86,9 +85,7 @@ if __name__ == "__main__":
             "prototyping_01", "prototyping_02", "prototyping_03", "prototyping_04",
             "prototyping_05", "prototyping_06", "prototyping_07"
         ]
-    # prototyping = ["prototyping_02"]
     debug = args.debug
-    # debug = False
 
     # Set default dataset filepath
     if not dataset_path:
@@ -115,31 +112,30 @@ if __name__ == "__main__":
         load_config(config_filename)
         for config_filename in config_filenames
     ]
-    print(use_configs)
 
     for use_cfg in use_configs:
         issue_areas = use_cfg["issue_areas"]
         summary_model_args = use_cfg["summary_model_args"]
+        use_tag = use_cfg.get("use_summary_from") or use_cfg["tag"]
         for model_name, model_args in summary_model_args.items():
             if use_cfg["all_issue"]:
                 summarize_dataset(
                     dataset_path, use_cfg["dataset"], issue_areas, output_dir=output_dir, output_filename=output_filename,
-                    model=model_name, tag=use_cfg.get("use_summary_from", use_cfg["tag"]), debug=debug, save_log=True, **model_args
+                    model=model_name, tag=use_tag, debug=debug, save_log=True, **model_args
                 )
             else:
                 for issue in issue_areas:
                     summarize_dataset(
                         dataset_path, use_cfg["dataset"], issue, output_dir=output_dir, output_filename=output_filename,
-                        model=model_name, tag=use_cfg.get("use_summary_from", use_cfg["tag"]), debug=debug, save_log=True, **model_args
+                        model=model_name, tag=use_tag, debug=debug, save_log=True, **model_args
                     )
-
         # Analyzing summaries
         analyze_model_args = use_cfg["analyze_model_args"]
         model = analyze_model_args["model"]
         override_persona_and_encouragement = analyze_model_args["override_persona_and_encouragement"]
         use_few_shot=analyze_model_args["use_few_shot"]
         analyze_summary(
-            os.path.join(output_dir, output_filename), model, tag=use_cfg.get("use_summary_from", use_cfg["tag"]),
+            os.path.join(output_dir, output_filename), model, tag=use_tag,
             override_persona_and_encouragement=override_persona_and_encouragement, use_few_shot=use_few_shot,
             output_dir=output_dir, debug=debug
         )

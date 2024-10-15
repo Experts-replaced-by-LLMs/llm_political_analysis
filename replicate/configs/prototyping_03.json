@@ -7,5 +7,6 @@
   "override_persona_and_encouragement": [0, 1],
   "all_issue": true,
   "summary_size": [1000, 1500],
-  "max_tokens_factor": 1.0
+  "max_tokens_factor": 1.0,
+  "prompt_version": "prototyping"
 }

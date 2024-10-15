@@ -1,5 +1,5 @@
 """
-Script to replicate all prototyping run
+Script to replicate all runs
 2024-10-02
 """
 
@@ -30,6 +30,9 @@ parser.add_argument("-d", "--dataset_path", dest="dataset_path",
 parser.add_argument("-g", "--debug",
                     action=BooleanOptionalAction, dest="debug", default=False,
                     help="Debug flag.")
+parser.add_argument("-y", "--dry_run",
+                    action=BooleanOptionalAction, dest="dry_run", default=False,
+                    help="Dry run flag.")
 
 def load_config(config_path):
     with open(config_path, "r", encoding="utf-8") as f:
@@ -86,6 +89,7 @@ if __name__ == "__main__":
             "prototyping_05", "prototyping_06", "prototyping_07"
         ]
     debug = args.debug
+    dry_run = args.dry_run
 
     # Set default dataset filepath
     if not dataset_path:
@@ -121,13 +125,13 @@ if __name__ == "__main__":
             if use_cfg["all_issue"]:
                 summarize_dataset(
                     dataset_path, use_cfg["dataset"], issue_areas, output_dir=output_dir, output_filename=output_filename,
-                    model=model_name, tag=use_tag, debug=debug, save_log=True, **model_args
+                    model=model_name, tag=use_tag, debug=debug, dry_run=dry_run, save_log=True, **model_args
                 )
             else:
                 for issue in issue_areas:
                     summarize_dataset(
                         dataset_path, use_cfg["dataset"], issue, output_dir=output_dir, output_filename=output_filename,
-                        model=model_name, tag=use_tag, debug=debug, save_log=True, **model_args
+                        model=model_name, tag=use_tag, debug=debug, dry_run=dry_run, save_log=True, **model_args
                     )
         # Analyzing summaries
         analyze_model_args = use_cfg["analyze_model_args"]
@@ -137,5 +141,5 @@ if __name__ == "__main__":
         analyze_summary(
             os.path.join(output_dir, output_filename), model, tag=use_tag,
             override_persona_and_encouragement=override_persona_and_encouragement, use_few_shot=use_few_shot,
-            output_dir=output_dir, debug=debug
+            output_dir=output_dir, dry_run=dry_run
         )

@@ -16,7 +16,7 @@ def validate_score(score):
     return score in ['NA', '1', '2', '3', '4', '5', '6', '7']
 
 
-def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=False, debug=False):
+def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=False, dry_run=False):
     """
     Analyzes the given text, given a prompt using the specified model.
 
@@ -27,7 +27,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
     - max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
             to handle most TPM rate limits with langchains built in exponential backoff.
     - probabilities (bool): Whether to include token probabilities in the response. Defaults to False. Only works with OpenAI models.
-
+    - dry_run (bool, optional): Don't invoke the LLM api call. Return a mock response for debug and testing. Defaults to False.
     Returns:
     - dict: A dictionary containing the score, any errors and the prompt used. 
 
@@ -70,7 +70,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
         print(
             f"Probabilities are not available for model {model}, please select a model from the following list: {openai_model_list}")
 
-    if debug:
+    if dry_run:
         return {'score': -1,
                 'error_message': "TEST MSG",
                 'prompt': prompt_string}
@@ -139,7 +139,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
     return response_dict
 
 
-def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, concurrency=3, debug=False):
+def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, concurrency=3, dry_run=False):
     """
     Analyzes the given text, given a list of prompts using the specified model.
 
@@ -188,7 +188,7 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     prompt_batches = [prompt_list[i:i + concurrency]
                       for i in range(0, len(prompt_list), concurrency)]
 
-    if debug:
+    if dry_run:
         return [{'score': -1,
                  'error_message': "TEST MSG",
                  'prompt': prompt_list[i]} for i, p in enumerate(prompt_list)]
@@ -236,7 +236,7 @@ def bulk_analyze_text(
         file_list, model_list, issue_list, summarize=True, parse_retries=3, max_retries=7,
         concurrency=3, override_persona_and_encouragement=None, results_file=None,
         output_dir=None, results_file_name="analyze_results.xlsx", if_summary_exists='reuse',
-        summary_size=(500, 1000), summary_max_tokens_factor=1.0, debug=False
+        summary_size=(500, 1000), summary_max_tokens_factor=1.0, dry_run=False
 ):
     """
     Analyzes a collection of text files using different models and prompts.
@@ -253,7 +253,7 @@ def bulk_analyze_text(
     - results_file (str): The path to the Excel file where the results will be saved, if provided,
         output_dir and results_file_name will be ignored.
     - output_dir (str): The path to the output directory where the results will be saved.
-    - results_file_name(str): The name of the output file. Defaults to 'analyze_results.xlsx'.
+    - results_file_name (str): The name of the output file. Defaults to 'analyze_results.xlsx'.
     - if_summary_exists (str): What to do if the summary file already exists. Options are 'overwrite', 'reuse' Defaults to 'reuse'
     - summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
     - summary_max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*summary_max_tokens_factor
@@ -288,7 +288,7 @@ def bulk_analyze_text(
                 print('---- Analyzing with model: ', model)
 
                 results = analyze_text_with_batch(
-                    prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency, debug=debug)
+                    prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency, dry_run=dry_run)
                 results_df = pd.DataFrame(results)
                 results_df['issue'] = issue
                 results_df['model'] = model
@@ -397,10 +397,34 @@ def analyze_summary(
         summary_dataset, model_list, tag=None, results_file=None, csv_chunksize=10,
         override_persona_and_encouragement=None, parse_retries=3, max_retries=7,
         use_few_shot=False, output_dir="../data/summaries/", result_file_name="analyze_results.xlsx",
-        debug=False
+        dry_run=False, skip_exist=True
 ):
+    """
+        Analyze the summarizes in a csv file
+        This is s function for reproducible run
+
+        Args:
+            summary_dataset (str): The path to the csv file of summary texts.
+            model_list (str): The names or IDs of the model to use for analysis.
+            tag (str): Tag for the run.
+            results_file (str): The path to the Excel file where the results will be saved. If not provided, use output_dir and result_file_name instead.
+            output_dir (str): The path to the directory where the results will be stored. Default to "../data/summaries/".
+            result_file_name (str): The name of the output file.
+            csv_chunksize (int): Chunk size for load the summaries csv file.
+            override_persona_and_encouragement (tuple, optional): Use a specific persona and encouragement.
+            parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
+            max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
+               to handle most TPM rate limits with langchains built in exponential backoff.
+            use_few_shot (bool, optional): Whether to use few shot prompt or not. Defaults to False.
+            dry_run (bool, optional): Don't invoke the LLM api call. Return a mock response for debug and testing. Defaults to False.
+            skip_exist (bool, optional): Whether to skip an existing summary result. Defaults to True.
+
+        """
     if results_file is None:
         results_file = os.path.join(output_dir, result_file_name)
+    df_existing_result = None
+    if os.path.exists(results_file):
+        df_existing_result = pd.read_excel(results_file)
 
     overall_results = []
     for chunk in pd.read_csv(summary_dataset, chunksize=csv_chunksize):
@@ -421,16 +445,25 @@ def analyze_summary(
                     prompt = get_prompts(issue, record.summary, override_persona_and_encouragement)
 
                 for model in model_list:
+                    # Check if exist
+                    if skip_exist and df_existing_result is not None:
+                        existing_record = df_existing_result[
+                            (df_existing_result["summary_model"]==record.summary_model)&(df_existing_result["tag"]==record.tag)&(df_existing_result['model'] == model)&(df_existing_result['issue'] == issue)&(df_existing_result['filename'] == record.filename)
+                        ]
+                        if existing_record.shape[0] > 0:
+                            print(f"Skipping: {record.filename} {issue} {model}")
+                            continue
+
                     print('---- Analyzing with model: ', model)
 
                     if use_few_shot:
                         results = analyze_text(
-                            prompt, model, parse_retries=parse_retries, max_retries=max_retries, debug=debug
+                            prompt, model, parse_retries=parse_retries, max_retries=max_retries, dry_run=dry_run
                         )
                         results_df = pd.DataFrame([results])
                     else:
                         results = analyze_text_with_batch(
-                            prompt, model, parse_retries=parse_retries, max_retries=max_retries, debug=debug
+                            prompt, model, parse_retries=parse_retries, max_retries=max_retries, dry_run=dry_run
                         )
                         results_df = pd.DataFrame(results)
                     results_df['filename'] = record.filename

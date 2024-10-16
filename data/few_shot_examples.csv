@@ -1,0 +1,185 @@
+issue,Calibration File,Expert mean,summary
+decentralization,Decentralization_Score_4_MikPartyB.txt,4,"The manifesto sees both costs and benefits in the decentralization of power and decision making to local and regional authorities.
+The main benefit are that it is better, other things being equal, to get decision making as close as possible to individual citizens, so the decision makers can respond to local needs, and local people can feel more a part of the decision making process. Every local area is not the same, so decision making and administration needs to be in the hands of people who best know what is needed in a particular area.
+On the other hand, local administrators may be less competent and well-trained than national civil servants, and potentially more open to corruption by local business interests. 
+It is also inefficient to repeat the same decision making analysis, time and time again, in every local area.
+The party therefore advocates a balance between delegating certain decisions to local politicians and administrators where these are intrinsically local, for example land use planning, but reserving to national governments decision making on matters such as taxation, and the funding and delivery of major public services.
+"
+decentralization,Decentralization_Score_7 MikPartyA.txt,7,"The manifesto does not support the decentralization of decision making and administration to local regions.
+Local and regional politicians and administrators are seen as more likely to be corrupt and inefficient, and more poorly trained, than those elected to national governments or recruited to the national civil service.
+Major policy decisions need to be supported by the highest quality research and analysis, which is best carried out at a national level. It is wasteful and inefficient to repeat such analyses, more poorly resourced, in every local region.
+Recognizing that local people need access to decision makers and the decision making process, the best way to achieve this is by creating incentives for elected member of parliament to be more open to input from voters, and by exploiting new technology to improve the quality of interactions between citizens and decision-makers.
+The manifesto argues that, since most taxes are paid by people to their national government, there is no justification for local variations in the quality of public services they receive in exchange for this.
+"
+decentralization,summary_gpt4o_short_decentralization_Score_1_BEL 2014  New Flemish Alliance NVA.txt,1,"
+The manifesto advocates significant restructuring of the political system towards a more decentralized model, where regions hold primary authority over most governance matters, with the federal level retaining only those powers that the regions agree to share.
+
+The manifesto argues that a centralized federal system is inefficient and calls for the decentralization of administrative functions to enhance efficiency and responsiveness. It suggests that local governments should have more autonomy and resources to better serve their communities. This includes transferring federal responsibilities to regional and local levels, thereby reducing bureaucratic overhead and improving service delivery.
+
+The manifesto aims to resolve the inefficiencies and conflicts inherent in the federal system by granting more power and responsibility to regional and local governments, fostering a more responsive and effective governance structure. It underscores the importance of decentralization, regional empowerment, and the principle of subsidiarity."
+environment,summary_gpt4o_short_environment_Score_1_UK 2019 Green.txt,1,"The manifesto presents a comprehensive approach to environmental protection, emphasizing the urgency of addressing the climate and environmental emergency. The manifesto outlines a a ten-year plan aimed at transforming the economy and society to achieve net-zero carbon emissions by 2030.
+
+The plan focuses on replacing fossil fuels with renewable energy sources such as wind, solar, geothermal, tidal, and hydro. It advocates the removal of all subsidies for oil and gas industries, and the introduction of a Carbon Tax on fossil fuels.
+
+The manifesto supports the decarbonization of industry through grants for low-carbon technology, the development of a circular economy, and the promotion of repair and recycling.
+
+The manifesto emphasizes that economic growth will no longer be the primary measure of progress. Instead, the focus will shift to indicators of real prosperity and wellbeing, such as health improvements, reduced inequality, and environmental restoration.
+
+Overall, the manifesto presents a vision where environmental protection is integral to economic policy, aiming to create a sustainable and equitable future. "
+environment,summary_gpt4o_short_environment_Score_4_AU 2019 SDP.txt,4,"The manifesto, stresses the need for a balanced approach that integrates economic growth with environmental sustainability.
+
+It proposes a comprehensive and collaborative approach, advocating a national climate convention that includes all political parties, federal states, municipalities, labor and employer representatives, environmental organizations, experts, universities, research institutions, and companies.
+
+The manifesto emphasizes that climate protection and economic growth are not mutually exclusive. By investing in sustainable practices and technologies, the economy can create new jobs, foster innovation, and maintain its competitiveness while protecting the environment. 
+
+In summary, the manifesto presents a detailed plan to address the climate crisis through collaborative efforts, ensuring that economic growth and environmental protection go hand in hand. The manifesto argues that through innovative and forward-thinking strategies, economic development can be achieved without compromising environmental sustainability."
+environment,summary_gpt4o_short_environment_Score_6_ BEL 2014  New Flemish Alliance NVA.txt,6,"The manifesto addresses the critical balance between environmental protection and economic growth, emphasizing that these two goals are not mutually exclusive but can be pursued simultaneously through strategic reforms and policies.
+
+On the economic front, the manifesto highlights the challenges faced by the nation, including high labor costs, fiscal pressures, and an aging population. It stresses the need for economic reforms to enhance competitiveness, stimulate job creation, and ensure the sustainability of social security systems. The document proposes reducing taxes and social contributions to incentivize work and entrepreneurship, thereby fostering economic growth.
+
+The manifesto acknowledges the potential trade-offs between environmental protection and economic growth. It argues that economic development should not come at the expense of the environment. Instead, it proposes a balanced approach where economic policies are designed to be environmentally sustainable. This includes investing in green technologies, promoting energy efficiency, and supporting industries that contribute to environmental conservation.
+
+The manifesto presents a vision of a sustainable future where economic growth and environmental protection are not mutually exclusive but are pursued in tandem. It calls for reforms that lower economic barriers while promoting green technologies and sustainable practices. The document underscores the importance of a balanced approach, ensuring that economic policies contribute to environmental sustainability and vice versa."
+european_union,summary_gpt4o_short_european_union_Score_1_HUN 2014 JOBBIK.txt,1,"The manifesto presents a critical stance towards the European Union (EU) and the process of European integration. It argues that the EU's policies and the process of European integration have not been beneficial for the country and suggests that the EU's directives and regulations have often been detrimental, particularly in sectors like agriculture and industry. The text implies that the EU's approach has led to the decline of local industries and the loss of economic sovereignty.
+
+The manifesto emphasizes that the EU's economic policies have contributed to the impoverishment of certain segments of the population. It criticizes the EU for imposing economic models that do not align with the country's needs, prioritizing the interests of multinational corporations over local businesses. The text also mentions negative social consequences of EU policies, including increased unemployment and social inequality.
+
+A significant theme in the manifesto is the defense of national sovereignty. The manifesto calls for a re-evaluation of thec country's membership in the EU, suggesting that the country should prioritize its national interests and consider alternatives to the current integration model.
+
+The manifesto criticizes the EU's bureaucratic structure, describing it as inefficient and disconnected from the realities of member states. It argues that the EU's decision-making processes are overly centralized and lack transparency, leading to policies that do not reflect the interests of all member states.
+
+In summary, the manifesto presents a critical view of the European Union and the process of European integration, emphasizing the need for the country to protect its national sovereignty and prioritize local development."
+european_union,summary_gpt4o_short_european_union_Score_4_BEL 2014  New Flemish Alliance NVA.txt,4,"The manifesto emphasizes the importance of balancing responsibility with solidarity within the EU framework. It argues that member states facing financial difficulties should take their own measures to restore market confidence, rather than relying excessively on EU support. It calls for robust action against fraud and social dumping, emphasizing that both member states and the EU must enforce rules correctly.
+
+The manifesto stresses the importance of preserving diversity, including linguistic diversity, within the European identity, opposing the idea of a uniform European superstate. 
+
+It calls for bringing the EU closer to its citizens by integrating European decision-making at all levels and increasing the politicization of the European debate. .
+
+The party insists on a correct application of the subsidiarity principle, where powers are only transferred to the EU if all member states see added value and allowing national and regional parliaments to compel the European Commission to withdraw proposals if a quorum believes the policy is better handled at the national or regional level.
+
+The party believes that before considering further enlargement, the EU should focus on deepening integration. 
+
+It stresses the need for a stable European economy, supporting a well-functioning euro and solid economic foundations, and arguing for member states to take responsibility for their own financial health. 
+"
+european_union,summary_gpt4o_short_european_union_Score_7_POL 2019 Civic Coalition PO.txt,7,"The manifesto outlines a comprehensive vision for the country's role and participation in the European Union (EU), emphasizing the need for active and constructive engagement. It criticizes the current government's approach, which it claims has led to marginalization within the EU, reducing the country's influence and effectiveness in European affairs. 
+
+The manifesto advocates re-establishing close cooperation with major EU countries, particularly Germany and France. It envisions the country acting as a bridge between larger and smaller EU states, as well as between Western and Central Europe. The goal is to be seen as a credible and reliable partner within the EU.
+
+The manifesto supports deeper economic integration within the EU, including participation in initiatives like the European Defence Fund and the European Agency for Defence. It also seeks increased support for businesses and exports through enhanced diplomatic and economic cooperation within the EU framework.
+
+The manifesto underscores the importance of adhering to EU principles of rule of law and democracy. It criticizes the current government's actions that have allegedly undermined these principles and pledges to restore judicial independence and media freedom in line with EU standards.
+
+In summary, the manifesto presents a vision of the country as a committed and influential member of the EU. It advocates for policies that enhance the country's role in European integration, secure financial and strategic benefits, and uphold democratic values and the rule of law."
+immigration,summary_gpt4o_short_immigration_Score_1_UK 2019 Green.txt,1,"The manifesto outlines a comprehensive and humane approach to immigration and border control, emphasizing social justice, human rights, and international cooperation.
+
+The party proposes replacing a new ministry which would enforce migration rules with compassion and respect for human rights, moving away from the current hostile environment. 
+
+The manifesto advocates for a reformed European refugee policy centered on humanity and compassion. It supports the re-establishment of a European sea-rescue mission to save lives in danger in European waters and calls for an urgent review of the safety of all migrants traveling to and across Europe.
+
+The party is committed to enshrining Freedom of Movement as a core principle, allowing people to live, learn, and love without borders.
+
+The manifesto calls for the immediate closure of immigration detention centers, which are criticized for their culture of abuse and violence. All deportation flights would be suspended immediately, allowing refugees to live freely and work while their applications are being processed.
+
+Migrants would be guaranteed safe and discreet access to public services like police, health, and education without fear of immigration enforcement.
+
+The manifesto defends the right of people of all faiths to express their beliefs, including through religious clothing, food, and observance, and commits to working with religious communities to ensure the safety of places of worship."
+immigration,summary_gpt4o_short_immigration_Score_4_AU 2019 SDP.txt,4,"The manifesto outlines a comprehensive and structured approach to immigration and border control under the principle of ""Integration before Immigration."" 
+
+The manifesto emphasizes that the integration of existing immigrants should be prioritized before allowing new immigrants. 
+
+It calls for increased efforts to improve living conditions in refugees' home regions to prevent forced migration, implementing a European ""Marshall Plan"" for Africa to effectively address the root causes of migration, and intensifying efforts to negotiate repatriation agreements for rejected asylum seekers
+
+It argues for the creation of a unified European asylum system with standardized procedures and fair distribution of asylum seekers across member states. Setting up European processing centers at the EU's external borders to expedite asylum procedures. Developing processing centers outside the EU under to prevent dangerous sea crossings and dismantle human smuggling networks.
+
+It asserts that illegal migration must be reduced to zero, while those granted asylum should be fully integrated into society, including an integration year for asylum recipients to facilitate language acquisition and job market preparation.
+
+In summary, the manifesto advocates for a balanced and responsible approach to immigration, emphasizing integration, international cooperation, and legal pathways while ensuring robust border control and addressing the root causes of migration."
+immigration,summary_gpt4o_short_immigration_Score_7_HUN 2014 JOBBIK.txt,7,"The manifesto outlines a stringent and nationalistic stance on immigration and border control. The party criticizes the current and previous governments for their handling of immigration, arguing that their policies have failed to protect Hungary's national interests and security.
+
+The manifesto emphasizes the importance of national sovereignty and the need to protect gthe country's borders from illegal immigration. It argues that uncontrolled immigration poses a threat to national security, cultural identity, and social cohesion.
+
+The manifesto calls for the implementation of strict border control measures to prevent illegal immigration. This includes the construction of physical barriers, increased border patrols, and the use of advanced surveillance technologies.
+
+The party rejects the concept of multiculturalism, arguing that it leads to social fragmentation and conflict. The party promotes the idea of preserving the country's cultural and ethnic homogeneity.
+
+The manifesto advocates for the immediate deportation of illegal immigrants and the establishment of agreements with other countries to facilitate the return of migrants.
+
+In summary, the manifesto advocates for a nationalistic and protectionist approach to immigration and border control, emphasizing strict border controls, the rejection of multiculturalism, and the prioritization of Hungary's national interests and cultural identity."
+lifestyle,summary_gpt4o_short_lifestyle_Score_1_UK 2019 Green.txt,1,"The manifesto adopts a progressive and inclusive stance on social and lifestyle issues, including abortion, LGBTQ+ rights, and traditional social values.
+
+The manifesto underscores the importance of reproductive health services, advocating for free access to all forms of birth control to provide women with genuine choices. It emphasizes the need for comprehensive reproductive health services, including safe and legal abortion. 
+
+The manifesto robustly supports LGBTQ+ rights, proposing several measures to enhance the well-being and rights of LGBTQ+ individuals. It calls for increased funding for NHS services crucial to LGBTQ+ people, such as trans healthcare, gender identity clinics, HIV treatment, and mental health services. 
+
+It emphasizes confronting racism, antisemitism, and prejudice through a broader and decolonialized curriculum in schools, focusing on diverse histories and role models.
+
+The manifesto does not explicitly support traditional social values. Instead, it focuses on progressive policies aimed at inclusivity, equality, and human rights. The party's approach is to challenge discrimination and exclusion while creating opportunities for everyone to flourish. 
+
+The manifesto outlines a comprehensive plan to tackle discrimination and promote social justice. It proposes a strategy to address ethnic inequalities in various sectors, including education, housing, employment, and health.
+
+In summary, the Green Party manifesto advocates for a society that values diversity, inclusivity, and equal rights for all individuals."
+lifestyle,summary_gpt4o_short_lifestyle_Score_5_CZ 2010 Civ Dem ODS.txt,5,"The manifesto advocates policies that support families with children, including tax benefits and flexible parental leave options. It proposes a ""two-speed"" maternity leave system, allowing parents to choose between a shorter, fully paid leave or a longer, partially paid leave.
+
+The manifesto also highlights the need for new family-oriented services, such as company-sponsored childcare and private mini-kindergartens, to complement existing public childcare facilities. This approach aims to provide parents with more choices in balancing work and family responsibilities.
+
+In terms of social support, the manifesto stresses the importance of a targeted and fair social system that assists those genuinely in need, such as the disabled, the elderly, and parents with young children. The party is committed to preventing the abuse of social benefits and ensuring that recipients fulfill their obligations.
+
+Overall, the manifesto reflects a commitment to traditional family values, with a focus on supporting families and ensuring the responsible use of social benefits.  It does not directly address social and lifestyle issues such as abortion, LGBTQ+ issues. 
+
+
+"
+lifestyle,summary_gpt4o_short_lifestyle_Score_7_HUN 2014 JOBBIK.txt,7,"
+The manifesto's emphasis on traditional family values and the protection of life suggests a preference for policies that encourage childbirth and family growth. The party proposes a societal program to investigate the reasons behind Hungary's high abortion rates, aiming to prevent and reduce the number of abortions. They seek to support and assist mothers and expectant mothers to ensure they have the necessary resources to carry their pregnancies to term.
+
+The manifesto opposes same-sex marriage and adoption by same-sex couples, advocating policies that align with traditional heterosexual family structures. The manifesto acknowledges the existence of individuals with homosexual tendencies and opposes discrimination against them but criticizes the promotion of homosexuality as a ""trendy"" phenomenon. This reflects a conservative approach, emphasizing tolerance without endorsement.
+
+The manifesto strongly supports traditional social values, particularly focusing on the family unit as the cornerstone of society. It defines a family as a life partnership between a man and a woman, established by mutual consent, and includes their children. The party aims to protect the family from what it perceives as liberal attacks promoting alternative lifestyles and non-traditional family structures.
+
+The manifesto criticizes the influence of globalist and liberal ideologies, advocating a return to national and Christian roots. 
+
+Overall, the manifesto reflects the party's commitment to upholding traditional social values, supporting families, and addressing social issues through a conservative lens. The party's approach to social policies is deeply rooted in its nationalistic and traditionalist ideology."
+taxation,summary_gpt4o_short_taxation_Score_1_ DEN 2019 SF.txt,1,"The manifesto emphasizes the importance of maintaining and enhancing public welfare services over implementing tax cuts. They do not promise significant tax reductions, even for lower-income groups.
+
+Instead, the party proposes an ambitious policy agenda with fair financing mechanisms. They suggest that the wealthiest individuals should contribute more to the public coffers. Specific measures include:
+
+The party supports the introduction of a wealth tax and higher taxes on capital income for top earners.
+
+The manifesto calls for a more efficient tax control system to ensure compliance and reduce tax evasion.
+
+They propose stricter regulation of the financial sector to ensure this benefits society. They advocate tighter regulations to prevent aggressive tax planning, high-frequency trading, and the sale of complex financial products. They want better oversight of capital funds to prevent large-scale tax fraud.
+
+The party is committed to ending the use of tax havens, closing loopholes that allow the wealthiest individuals and corporations to avoid paying their fair share of taxes.
+
+Overall, the manifesto underscores a commitment to a fair and equitable tax system that supports robust public services and reduces inequality. The party believes that by ensuring the wealthiest contribute more and by tightening financial regulations, they can fund essential public services and create a more just society."
+taxation,summary_gpt4o_short_taxation_Score_4_POL 2019 Civic Coalition PO.txt,4,"The manifesto stresses that state budget funds, sourced from taxpayers, should not be misused for political corruption, vote-buying, or propaganda. Instead, they advocate for the allocation of public money solely for actions that serve the common good.
+
+The manifesto introduces a program called ""Lower Taxes, Higher Wages,"" aimed at increasing the net income of lower-earning individuals by reducing their tax burden. .
+
+The manifesto proposes to simplify the tax system for businesses. They propose a single tax and social security payment instead of multiple transactions.
+
+They suggest restructuring the Corporate Income Tax (CIT) to a model where companies only pay taxes on profits when they are distributed to shareholders, not when they are reinvested in the business.
+
+The manifesto proposes to increase public spending on healthcare. 
+
+The manifesto calls for significant investment in education, including higher salaries for teachers, modernized school infrastructure, and a focus on practical skills and digital competencies. 
+
+The party aims to support the elderly by increasing pensions and providing incentives for older individuals to remain in the workforce. They propose exempting working pensioners from income tax on their pensions.
+
+The party acknowledges that their proposed tax cuts and increased public spending will require careful financial management. They plan to achieve this by:
+
+- Reducing public debt to below 30% of GDP by 2030.
+- Implementing a ban on excessive borrowing during periods of economic growth.
+- Ensuring that any increase in public spending is matched by corresponding increases in revenue or savings from other areas.
+
+In summary, the manifesto focuses on reducing the tax burden on lower-income individuals and small businesses, increasing public spending on healthcare and education, and implementing environmental protection measures. They aim to balance these initiatives with prudent financial management to ensure long-term economic stability."
+taxation,summary_gpt4o_short_taxation_Score_7_ CZ 2010 Civ Dem ODS.txt,7,"The manifesto emphasizes the importance of maintaining low and simple taxes, arguing that lower taxes reduce the incentive for tax evasion, leave more money in the hands of individuals and businesses, and foster economic growth. The manifesto highlights the need for a simplified tax system to enhance transparency and reduce administrative burdens.
+
+The manifesto stresses the need for responsible fiscal policies to avoid excessive public debt. It criticizes previous governments for irresponsible spending and increasing public debt, particularly during periods of economic growth. The party commits to a balanced budget approach, aiming to achieve a balanced budget within seven years. It proposes a constitutional law on budgetary discipline and responsibility, which would mandate governments to adhere to strict fiscal rules and impose sanctions for non-compliance.
+
+The manifesto acknowledges the trade-offs between taxation, public spending, and economic stability, but argues that maintaining low taxes and reducing public debt are essential for long-term economic health. The manifesto also emphasizes the importance of creating a favorable environment for businesses, including reducing bureaucratic barriers and supporting entrepreneurship.
+
+The party also aims to prevent the abuse of social benefits and ensure that social support is targeted at those who genuinely need it.
+
+Overall, the manifesto presents a vision of a fiscally responsible government that prioritizes low taxes, efficient public spending, and economic growth. It emphasizes the need for structural reforms and a simplified tax system to achieve these goals while maintaining social support for vulnerable groups. 
+
+"

@@ -78,7 +78,7 @@ def get_prompts(issue_area, text, override_persona_and_encouragement=None):
 def get_few_shot_prompt(
         issue_area, text,
         example_csv_filepath=None,
-        example_search_path=None
+        # example_search_path=None
 ):
     """
     Generate prompt for analyzing a manifesto based on the given issue area.
@@ -97,9 +97,11 @@ def get_few_shot_prompt(
         list: A list of messages for the few-shot learning task.
     """
     if not example_csv_filepath:
-        example_csv_filepath = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "few_shot_prompts", "few_shot_prompt_setup.csv")
-    if not example_search_path:
-        example_search_path = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "data", "few_shot_prompts")
+        example_csv_filepath = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "few_shot_examples.csv")
+    # if not example_csv_filepath:
+    #     example_csv_filepath = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), "data", "few_shot_prompts", "few_shot_prompt_setup.csv")
+    # if not example_search_path:
+    #     example_search_path = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "data", "few_shot_prompts")
 
     prompts_analyze = load_prompts("analyze")
     personas = prompts_analyze["personas"]
@@ -127,10 +129,10 @@ def get_few_shot_prompt(
     prompt = [SystemMessage(content=system_template.format(
         persona=persona, encouragement=encouragement, policy_scale=policy_scales[issue_area]))]
     for example in issue_examples.iterrows():
-        summary_file_name = example[1]['Calibration File']
-        # with open(f'../data/summaries/{summary_file_name}', 'r') as summary_file:
-        with open(os.path.join(example_search_path, summary_file_name), 'r') as summary_file:
-            summary = summary_file.read()
+        # summary_file_name = example[1]['Calibration File']
+        summary  = example[1]['summary']
+        # with open(os.path.join(example_search_path, summary_file_name), 'r') as summary_file:
+        #     summary = summary_file.read()
         prompt.append(HumanMessage(
             content=human_template.format(text=summary)))
         prompt.append(AIMessage(content=ai_template.format(

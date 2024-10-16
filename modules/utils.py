@@ -32,7 +32,7 @@ def detect_encoding(filepath):
         return enc['encoding']
 
 
-def estimate_tokens(text, model):
+def count_tokens(text, model):
     if model == "gpt":
         encoding = tiktoken.encoding_for_model('gpt-4')
         enc = encoding.encode(text)

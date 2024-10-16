@@ -11,7 +11,7 @@ from datetime import date
 
 from dotenv import load_dotenv
 
-from llm_political_analysis.modules.analyze import analyze_summary
+from llm_political_analysis.modules.analyze import analyze_dataset
 from llm_political_analysis.modules.summarize import summarize_dataset
 from llm_political_analysis.modules.utils import list_files
 
@@ -64,7 +64,7 @@ def load_config(config_path):
             "tag": cfg["tag"],
             "dataset": cfg["dataset"],
             "all_issue": cfg.get("all_issue", False),
-            "use_summary_from": cfg.get("use_summary_from", None),
+            "summary_tag": cfg.get("summary_tag", cfg["tag"]),
             "issue_areas": cfg["issue_areas"],
         }
 
@@ -120,26 +120,28 @@ if __name__ == "__main__":
     for use_cfg in use_configs:
         issue_areas = use_cfg["issue_areas"]
         summary_model_args = use_cfg["summary_model_args"]
-        use_tag = use_cfg.get("use_summary_from") or use_cfg["tag"]
+        # use_tag = use_cfg.get("use_summary_from") or use_cfg["tag"]
+        run_tag = use_cfg["tag"]
+        summary_tag = use_cfg["summary_tag"]
         for model_name, model_args in summary_model_args.items():
             if use_cfg["all_issue"]:
                 summarize_dataset(
                     dataset_path, use_cfg["dataset"], issue_areas, output_dir=output_dir, output_filename=output_filename,
-                    model=model_name, tag=use_tag, debug=debug, dry_run=dry_run, save_log=True, **model_args
+                    model=model_name, tag=summary_tag, debug=debug, dry_run=dry_run, save_log=True, **model_args
                 )
             else:
                 for issue in issue_areas:
                     summarize_dataset(
                         dataset_path, use_cfg["dataset"], issue, output_dir=output_dir, output_filename=output_filename,
-                        model=model_name, tag=use_tag, debug=debug, dry_run=dry_run, save_log=True, **model_args
+                        model=model_name, tag=summary_tag, debug=debug, dry_run=dry_run, save_log=True, **model_args
                     )
         # Analyzing summaries
         analyze_model_args = use_cfg["analyze_model_args"]
         model = analyze_model_args["model"]
         override_persona_and_encouragement = analyze_model_args["override_persona_and_encouragement"]
         use_few_shot=analyze_model_args["use_few_shot"]
-        analyze_summary(
-            os.path.join(output_dir, output_filename), model, tag=use_tag,
+        analyze_dataset(
+            os.path.join(output_dir, output_filename), model, summary_tag=summary_tag, tag=run_tag,
             override_persona_and_encouragement=override_persona_and_encouragement, use_few_shot=use_few_shot,
             output_dir=output_dir, dry_run=dry_run
         )

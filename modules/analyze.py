@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime
 import os
 
@@ -393,11 +394,11 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file=N
     return final_df
 
 
-def analyze_summary(
-        summary_dataset, model_list, tag=None, results_file=None, csv_chunksize=10,
+def analyze_dataset(
+        summary_dataset, model_list, tag=None, summary_tag=None, results_file=None,
         override_persona_and_encouragement=None, parse_retries=3, max_retries=7,
-        use_few_shot=False, output_dir="../data/summaries/", result_file_name="analyze_results.xlsx",
-        dry_run=False, skip_exist=True
+        use_few_shot=False, output_dir="../data/summaries/", result_file_name="analyze_results.csv",
+        dry_run=False, if_exist="reuse"
 ):
     """
         Analyze the summarizes in a csv file
@@ -407,90 +408,81 @@ def analyze_summary(
             summary_dataset (str): The path to the csv file of summary texts.
             model_list (str): The names or IDs of the model to use for analysis.
             tag (str): Tag for the run.
+            summary_tag (str): Tag for the summary run.
             results_file (str): The path to the Excel file where the results will be saved. If not provided, use output_dir and result_file_name instead.
             output_dir (str): The path to the directory where the results will be stored. Default to "../data/summaries/".
             result_file_name (str): The name of the output file.
-            csv_chunksize (int): Chunk size for load the summaries csv file.
             override_persona_and_encouragement (tuple, optional): Use a specific persona and encouragement.
             parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
             max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
                to handle most TPM rate limits with langchains built in exponential backoff.
             use_few_shot (bool, optional): Whether to use few shot prompt or not. Defaults to False.
             dry_run (bool, optional): Don't invoke the LLM api call. Return a mock response for debug and testing. Defaults to False.
-            skip_exist (bool, optional): Whether to skip an existing summary result. Defaults to True.
-
+            if_exist (str, optional): Whether to reuse an existing summary result. Defaults to reuse.
         """
+
+    # First create result file or load existing results
     if results_file is None:
         results_file = os.path.join(output_dir, result_file_name)
-    df_existing_result = None
+    columns = [
+        'filename', 'issue', 'summary_model', 'tag', 'model', 'score',
+        'error_message', 'prompt', 'created_at'
+    ]
     if os.path.exists(results_file):
-        df_existing_result = pd.read_excel(results_file)
+        df_existing_results = pd.read_csv(results_file)
+    else:
+        df_existing_results = pd.DataFrame(columns=columns)
+        df_existing_results.to_csv(results_file, index=False)
 
-    overall_results = []
-    for chunk in pd.read_csv(summary_dataset, chunksize=csv_chunksize):
-        if tag is not None:
-            records = chunk[chunk["tag"] == tag]
-        else:
-            records = chunk
+    # Load all summaries to be analyzed
+    df_summaries = pd.read_csv(summary_dataset)
+    if summary_tag is not None:
+        df_summaries = df_summaries[df_summaries['tag'] == summary_tag]
 
-        for record in records.itertuples():
-            print('Analyzing: ', record.filename)
-            issue_list = record.issues.split("-")
+    for summary_record in df_summaries.itertuples():
+        print('Analyzing: ', summary_record.filename)
+        for issue in summary_record.issues.split("-"):
+            print('-- Analyzing issue: ', issue)
+            for model in model_list:
+                print('---- Analyzing with model: ', model)
+                existing_record = df_existing_results[
+                    (df_existing_results["filename"]==summary_record.filename)
+                    &(df_existing_results["issue"]==issue)
+                    &(df_existing_results["summary_model"]==summary_record.summary_model)
+                    &(df_existing_results['tag'] == tag)
+                    &(df_existing_results['model'] == model)
+                ]
+                if existing_record.shape[0] > 0:
+                    if if_exist == "reuse":
+                        print(f"Skip: {tag} {summary_record.summary_model} summarizer")
+                    elif existing_record.shape[0] > 1:
+                        warnings.warn(f"Record has multiple existing summaries: {summary_record.filename}")
+                    else:
+                        df_existing_results = df_existing_results.drop(existing_record.index)
 
-            for issue in issue_list:
-                print('-- Analyzing issue: ', issue)
                 if use_few_shot:
-                    prompt = get_few_shot_prompt(issue, record.summary)
+                    prompt = get_few_shot_prompt(issue, summary_record.summary)
+                    results = analyze_text(
+                        prompt, model, parse_retries=parse_retries, max_retries=max_retries, dry_run=dry_run
+                    )
+                    results_df = pd.DataFrame([results])
                 else:
-                    prompt = get_prompts(issue, record.summary, override_persona_and_encouragement)
-
-                for model in model_list:
-                    # Check if exist
-                    if skip_exist and df_existing_result is not None:
-                        existing_record = df_existing_result[
-                            (df_existing_result["summary_model"]==record.summary_model)&(df_existing_result["tag"]==record.tag)&(df_existing_result['model'] == model)&(df_existing_result['issue'] == issue)&(df_existing_result['filename'] == record.filename)
-                        ]
-                        if existing_record.shape[0] > 0:
-                            print(f"Skipping: {record.filename} {issue} {model}")
-                            continue
-
-                    print('---- Analyzing with model: ', model)
-
-                    if use_few_shot:
-                        results = analyze_text(
-                            prompt, model, parse_retries=parse_retries, max_retries=max_retries, dry_run=dry_run
-                        )
-                        results_df = pd.DataFrame([results])
-                    else:
-                        results = analyze_text_with_batch(
-                            prompt, model, parse_retries=parse_retries, max_retries=max_retries, dry_run=dry_run
-                        )
-                        results_df = pd.DataFrame(results)
-                    results_df['filename'] = record.filename
-                    results_df['issue'] = issue
-                    results_df['model'] = model
-                    results_df['summary_model'] = record.summary_model
-                    results_df['tag'] = record.tag
-                    results_df['created_at'] = datetime.now()
-                    results_df = results_df[[
-                        'filename', 'issue', 'summary_model', 'tag', 'model', 'score', 'error_message', 'prompt', 'created_at']]
-
-                    # Writing to Excel as we go to avoid losing data in case of an error
-                    if os.path.exists(results_file):
-                        # Append to existing file
-                        with pd.ExcelWriter(results_file, mode='a', engine='openpyxl',
-                                            if_sheet_exists='overlay') as writer:
-                            results_df.to_excel(
-                                writer, index=False, header=False, sheet_name='Sheet1',
-                                startrow=writer.sheets['Sheet1'].max_row)
-                    else:
-                        # Create a new file
-                        with pd.ExcelWriter(results_file, mode='w', engine='openpyxl') as writer:
-                            results_df.to_excel(
-                                writer, index=False, sheet_name='Sheet1')
-
-                    overall_results.append(results_df)
-
-    final_df = pd.concat(overall_results, axis=0)
-    final_df = final_df.reset_index(drop=True)
-    return final_df
+                    prompt = get_prompts(issue, summary_record.summary, override_persona_and_encouragement)
+                    results = analyze_text_with_batch(
+                        prompt, model, parse_retries=parse_retries, max_retries=max_retries, dry_run=dry_run
+                    )
+                    results_df = pd.DataFrame(results)
+                results_df['filename'] = summary_record.filename
+                results_df['issue'] = issue
+                results_df['model'] = model
+                results_df['summary_model'] = summary_record.summary_model
+                results_df['tag'] = tag
+                results_df['created_at'] = datetime.now()
+                results_df = results_df[[
+                    'filename', 'issue', 'summary_model', 'tag', 'model', 'score', 'error_message', 'prompt',
+                    'created_at']]
+                if existing_record.shape[0] > 0:
+                    df_new = pd.concat([df_existing_results, results_df])
+                    df_new.to_csv(results_file, mode="w", index=False)
+                else:
+                    results_df.to_csv(results_file, mode="a", index=False, header=False)

@@ -310,13 +310,16 @@ def summarize_dataset(
         new_summaries = []
 
         existing_rec = df_existing_summaries[
-            (df_existing_summaries["filename"]==record["filename"])&(df_existing_summaries["issues"]==issue_areas_string)&(df_existing_summaries["summary_model"]==model)&(df_existing_summaries["tag"]==tag)
+            (df_existing_summaries["filename"]==record["filename"])
+            &(df_existing_summaries["issues"]==issue_areas_string)
+            &(df_existing_summaries["summary_model"]==model)
+            &(df_existing_summaries["tag"]==tag)
             ]
         if existing_rec.shape[0] > 0:
             if if_exists == "reuse":
-                print(f"Skipping: {record['filename']}")
+                print(f"Skip summary: [{issue_areas_string} {tag}] {record['filename']}")
                 continue
-            elif existing_rec.shape[0] >= 1:
+            elif existing_rec.shape[0] > 1:
                 warnings.warn(f"Record has multiple existing summaries: {record['filename']}")
             else:
                 # Remove previous one

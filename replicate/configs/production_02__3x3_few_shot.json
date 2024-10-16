@@ -10,7 +10,7 @@
   "max_tokens_factor": 2.0,
   "prompt_version": "no_na",
   "use_few_shot": true,
-  "use_summary_from": "production_01",
+  "summary_tag": "production_01",
   "summary_model_args": {
     "claude-3-5-sonnet-20240620": {
       "try_no_chunk": true

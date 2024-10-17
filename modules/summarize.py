@@ -2,8 +2,11 @@ import os.path
 import re
 import time
 import pickle
+import warnings
+from uuid import uuid4
 
 import anthropic
+import pandas as pd
 
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -19,8 +22,8 @@ from llm_political_analysis.modules.prompts import load_prompts
 
 
 def summarize_text(
-        text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500, 1000), debug=False,
-        max_tokens_factor=1.0, prompt_version=None, return_log=False
+        text, issue_areas, model="gpt-4o", chunk_size=100000, overlap=2500, summary_size=(500, 1000),
+        max_tokens_factor=1.0, prompt_version=None, return_log=False, debug=False, dry_run=False
 ):
     """
     Summarizes the given text based on the specified issue areas using a language model.
@@ -33,10 +36,11 @@ def summarize_text(
         chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000. Set to 0 to disable chunk.
         overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.
         summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
-        debug (bool, optional): Should debug information be printed. Defaults to False.
         max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*max_tokens_factor
         prompt_version (str, optional): The prompt version to be used.
         return_log (bool, optional): Whether to return log information. Defaults to False.
+        debug (bool, optional): Should debug information be printed. Defaults to False.
+        dry_run (bool, optional): Don't invoke the LLM api call. Return a mock response for debug and testing. Defaults to False.
 
     Returns:
         str: The final summary of the text.
@@ -124,6 +128,9 @@ def summarize_text(
         if debug:
             print('Prompt:', summarize_prompt)
 
+        if dry_run:
+            return text[:100], [(text[100:200], text[-100:])]
+
         try:
             summary = llm.invoke(summarize_prompt)
             logs.append((summarize_prompt, summary))
@@ -172,7 +179,7 @@ def summarize_text(
 
 def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", model="gpt-4o",
                    chunk_size=100000, overlap=2500, summary_size=(500, 1000), if_exists='overwrite',
-                   save_summary=True, debug=False, max_tokens_factor=1.0, prompt_version=None, save_log=False):
+                   save_summary=True, max_tokens_factor=1.0, prompt_version=None, save_log=False, debug=False):
     """
     Summarizes the text in the given file based on the specified issue area using a language model.
 
@@ -186,10 +193,10 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
         summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
         if_exists (str, optional): What to do if the summary file already exists. Options are 'overwrite', 'reuse' Defaults to 'overwrite'
         save_summary (bool, optional): Should the summary be saved to a file. Defaults to True.
-        debug (bool, optional): Should debug information be printed. Defaults to False.
         max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*max_tokens_factor
         prompt_version (str, optional): The prompt version to be used.
         save_log (bool, optional): Should the log information be saved to a file. Defaults to False.
+        debug (bool, optional): Should debug information be printed. Defaults to False.
 
     Returns:
         str: The final summary of the text.
@@ -246,3 +253,123 @@ def summarize_file(file_path, issue_areas, output_dir="../data/summaries/", mode
             file.write(summary)
 
     return summary
+
+
+def summarize_dataset(
+        dataset_filepath, group, issue_areas, output_dir="../data/summaries/", output_filename="summaries.csv",
+        model="gpt-4o", try_no_chunk=False, chunk_size=100000, overlap=2500, summary_size=(300, 400), if_exists='reuse',
+        max_tokens_factor=2.0, prompt_version=None, save_log=False, tag=None, debug=False, dry_run=False
+):
+    """
+    Summarizes the text in the given dataset file based on the specified group and issue area using a language model.
+    Save the summaries into a csv file.
+    This is s function for reproducible run
+
+    Args:
+        dataset_filepath: The path to the dataset file of original manifesto documents.
+        group: Subset of the dataset. One of [prototyping, production, calibration, test, coalition, translation]
+        issue_areas (list): The issue areas related to the text.
+        output_dir: (str): The path to the directory where the results will be stored. Default to "../data/summaries/".
+        output_filename (str): The name of the final summary file.
+        model (str, optional): The name of the language model to be used for summarization. Defaults to "gpt-4o".
+        try_no_chunk (bool, optional): Try to summarize without chunking first. Fall back to chunking when exception raised.
+        chunk_size (int, optional): The size of each chunk to split the text into. Defaults to 100000.
+        overlap (int, optional): The overlap between consecutive chunks. Defaults to 2500.
+        summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
+        if_exists (str, optional): What to do if the summary already exists. Options are 'overwrite', 'reuse' Defaults to 'reuse'
+        max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*max_tokens_factor
+        prompt_version (str, optional): The prompt version to be used.
+        save_log (bool, optional): Should the log information be saved to a file. Defaults to False.
+        tag: To continue a break run, always pass in a unique tag
+        debug (bool, optional): Should debug information be printed. Defaults to False.
+        dry_run (bool, optional): Don't invoke the LLM api call. Return a mock response for debug and testing. Defaults to False.
+
+    """
+    if tag is None:
+        tag = uuid4().hex
+
+    columns = ["filename", "issues", "summary_model", "summary", "timestamp", "tag"]
+
+    if isinstance(issue_areas, str):
+        issue_areas = [issue_areas]
+
+    issue_areas_string = "-".join(issue_areas)
+
+    df_manifesto_dataset = pd.read_csv(dataset_filepath)
+    df_manifesto_dataset = df_manifesto_dataset[df_manifesto_dataset[group] == 1]
+
+    result_filepath = os.path.join(output_dir, output_filename)
+
+    for _, record in df_manifesto_dataset.iterrows():
+
+        if os.path.exists(result_filepath):
+            df_existing_summaries = pd.read_csv(result_filepath)
+        else:
+            df_existing_summaries = pd.DataFrame(columns=columns)
+            df_existing_summaries.to_csv(result_filepath, index=False)
+        new_summaries = []
+
+        existing_rec = df_existing_summaries[
+            (df_existing_summaries["filename"]==record["filename"])
+            &(df_existing_summaries["issues"]==issue_areas_string)
+            &(df_existing_summaries["summary_model"]==model)
+            &(df_existing_summaries["tag"]==tag)
+            ]
+        if existing_rec.shape[0] > 0:
+            if if_exists == "reuse":
+                print(f"Skip summary: [{issue_areas_string} {tag}] {record['filename']}")
+                continue
+            elif existing_rec.shape[0] > 1:
+                warnings.warn(f"Record has multiple existing summaries: {record['filename']}")
+            else:
+                # Remove previous one
+                df_existing_summaries = df_existing_summaries.drop(existing_rec.index)
+
+        print(f"--- Summarizing {record['filename']} ---")
+
+        if try_no_chunk:
+            try:
+                print("Trying summarize without chunk ...")
+                summary = summarize_text(
+                    record["text"], issue_areas, model=model, chunk_size=0, overlap=0, summary_size=summary_size,
+                    max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, return_log=save_log,
+                    debug=debug, dry_run=dry_run
+                )
+            except Exception as e:
+                if chunk_size>0:
+                    print("Cannot summarize entire document. Trying chunk summarization...")
+                    summary = summarize_text(
+                        record["text"], issue_areas, model=model, chunk_size=chunk_size, overlap=overlap,
+                        summary_size=summary_size,
+                        max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, return_log=save_log,
+                        debug=debug, dry_run=dry_run
+                    )
+                else:
+                    raise e
+        else:
+            summary = summarize_text(
+                record["text"], issue_areas, model=model, chunk_size=chunk_size, overlap=overlap,
+                summary_size=summary_size,
+                max_tokens_factor=max_tokens_factor, prompt_version=prompt_version, return_log=save_log,
+                debug=debug, dry_run=dry_run
+            )
+
+        if save_log:
+            log_paths = os.path.join(output_dir, "logs")
+            if not os.path.exists(log_paths):
+                os.makedirs(log_paths)
+            summary, logs = summary
+            model_name_string = re.sub(r'[-_.:]', '', model)
+            log_file_name = os.path.join(
+                log_paths, f"summary_log_{issue_areas_string}_{tag}_{model_name_string}__{os.path.splitext(record['filename'])[0]}.pkl"
+            )
+            with open(log_file_name, 'wb') as f:
+                pickle.dump(logs, f)
+
+        new_summaries.append([record["filename"], issue_areas_string, model, summary, int(time.time()), tag])
+        if existing_rec.shape[0] > 0:
+            df_new = pd.concat([df_existing_summaries, pd.DataFrame(new_summaries)])
+            df_new.to_csv(result_filepath, mode="w", index=False)
+        else:
+            df_new = pd.DataFrame(new_summaries, columns=columns)
+            df_new.to_csv(result_filepath, mode="a", index=False, header=False)

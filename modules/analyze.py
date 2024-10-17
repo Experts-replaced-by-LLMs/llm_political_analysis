@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime
 import os
 
@@ -7,16 +8,16 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from . import openai_model_list, claude_model_list, gemini_model_list
-from .prompts import get_prompts, get_few_shot_prompt
-from .summarize import summarize_file
+from llm_political_analysis.modules import openai_model_list, claude_model_list, gemini_model_list
+from llm_political_analysis.modules.prompts import get_prompts, get_few_shot_prompt
+from llm_political_analysis.modules.summarize import summarize_file
 
 
 def validate_score(score):
     return score in ['NA', '1', '2', '3', '4', '5', '6', '7']
 
 
-def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=False):
+def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=False, dry_run=False):
     """
     Analyzes the given text, given a prompt using the specified model.
 
@@ -27,7 +28,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
     - max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
             to handle most TPM rate limits with langchains built in exponential backoff.
     - probabilities (bool): Whether to include token probabilities in the response. Defaults to False. Only works with OpenAI models.
-
+    - dry_run (bool, optional): Don't invoke the LLM api call. Return a mock response for debug and testing. Defaults to False.
     Returns:
     - dict: A dictionary containing the score, any errors and the prompt used. 
 
@@ -69,6 +70,11 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
     elif probabilities:
         print(
             f"Probabilities are not available for model {model}, please select a model from the following list: {openai_model_list}")
+
+    if dry_run:
+        return {'score': -1,
+                'error_message': "TEST MSG",
+                'prompt': prompt_string}
 
     # This is the core call to the model
     try:
@@ -134,7 +140,7 @@ def analyze_text(prompt, model, parse_retries=3, max_retries=7, probabilities=Fa
     return response_dict
 
 
-def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, concurrency=3):
+def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, concurrency=3, dry_run=False):
     """
     Analyzes the given text, given a list of prompts using the specified model.
 
@@ -182,6 +188,12 @@ def analyze_text_with_batch(prompt_list, model, parse_retries=3, max_retries=7, 
     responses = []
     prompt_batches = [prompt_list[i:i + concurrency]
                       for i in range(0, len(prompt_list), concurrency)]
+
+    if dry_run:
+        return [{'score': -1,
+                 'error_message': "TEST MSG",
+                 'prompt': prompt_list[i]} for i, p in enumerate(prompt_list)]
+
     for prompt_batch in prompt_batches:
         responses += llm.batch(prompt_batch)
 
@@ -225,7 +237,7 @@ def bulk_analyze_text(
         file_list, model_list, issue_list, summarize=True, parse_retries=3, max_retries=7,
         concurrency=3, override_persona_and_encouragement=None, results_file=None,
         output_dir=None, results_file_name="analyze_results.xlsx", if_summary_exists='reuse',
-        summary_size=(500, 1000), summary_max_tokens_factor=1.0
+        summary_size=(500, 1000), summary_max_tokens_factor=1.0, dry_run=False
 ):
     """
     Analyzes a collection of text files using different models and prompts.
@@ -242,7 +254,7 @@ def bulk_analyze_text(
     - results_file (str): The path to the Excel file where the results will be saved, if provided,
         output_dir and results_file_name will be ignored.
     - output_dir (str): The path to the output directory where the results will be saved.
-    - results_file_name(str): The name of the output file. Defaults to 'analyze_results.xlsx'.
+    - results_file_name (str): The name of the output file. Defaults to 'analyze_results.xlsx'.
     - if_summary_exists (str): What to do if the summary file already exists. Options are 'overwrite', 'reuse' Defaults to 'reuse'
     - summary_size (tuple, optional): The minimum and maximum size of the final summary. Defaults to (500,1000).
     - summary_max_tokens_factor (float, optional): The max_tokens of LLM will be set to summary_size[1]*summary_max_tokens_factor
@@ -277,7 +289,7 @@ def bulk_analyze_text(
                 print('---- Analyzing with model: ', model)
 
                 results = analyze_text_with_batch(
-                    prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency)
+                    prompts, model, parse_retries=parse_retries, max_retries=max_retries, concurrency=concurrency, dry_run=dry_run)
                 results_df = pd.DataFrame(results)
                 results_df['issue'] = issue
                 results_df['model'] = model
@@ -380,3 +392,97 @@ def bulk_analyze_text_few_shot(file_list, model_list, issue_list, results_file=N
     final_df = pd.concat(overall_results, axis=0)
     final_df = final_df.reset_index(drop=True)
     return final_df
+
+
+def analyze_dataset(
+        summary_dataset, model_list, tag=None, summary_tag=None, results_file=None,
+        override_persona_and_encouragement=None, parse_retries=3, max_retries=7,
+        use_few_shot=False, output_dir="../data/summaries/", result_file_name="analyze_results.csv",
+        dry_run=False, if_exist="reuse"
+):
+    """
+        Analyze the summarizes in a csv file
+        This is s function for reproducible run
+
+        Args:
+            summary_dataset (str): The path to the csv file of summary texts.
+            model_list (str): The names or IDs of the model to use for analysis.
+            tag (str): Tag for the run.
+            summary_tag (str): Tag for the summary run.
+            results_file (str): The path to the Excel file where the results will be saved. If not provided, use output_dir and result_file_name instead.
+            output_dir (str): The path to the directory where the results will be stored. Default to "../data/summaries/".
+            result_file_name (str): The name of the output file.
+            override_persona_and_encouragement (tuple, optional): Use a specific persona and encouragement.
+            parse_retries (int): The number of times to retry parsing the response. Defaults to 3.
+            max_retries (int): The number of times to retry invoking the model. Defaults to 7, which should be enough
+               to handle most TPM rate limits with langchains built in exponential backoff.
+            use_few_shot (bool, optional): Whether to use few shot prompt or not. Defaults to False.
+            dry_run (bool, optional): Don't invoke the LLM api call. Return a mock response for debug and testing. Defaults to False.
+            if_exist (str, optional): Whether to reuse an existing summary result. Defaults to reuse.
+        """
+
+    # First create result file or load existing results
+    if results_file is None:
+        results_file = os.path.join(output_dir, result_file_name)
+    columns = [
+        'filename', 'issue', 'summary_model', 'tag', 'model', 'score',
+        'error_message', 'prompt', 'created_at'
+    ]
+    if os.path.exists(results_file):
+        df_existing_results = pd.read_csv(results_file)
+    else:
+        df_existing_results = pd.DataFrame(columns=columns)
+        df_existing_results.to_csv(results_file, index=False)
+
+    # Load all summaries to be analyzed
+    df_summaries = pd.read_csv(summary_dataset)
+    if summary_tag is not None:
+        df_summaries = df_summaries[df_summaries['tag'] == summary_tag]
+
+    for summary_record in df_summaries.itertuples():
+        print('Analyzing: ', summary_record.filename)
+        for issue in summary_record.issues.split("-"):
+            print('-- Analyzing issue: ', issue)
+            for model in model_list:
+                print('---- Analyzing with model: ', model)
+                existing_record = df_existing_results[
+                    (df_existing_results["filename"]==summary_record.filename)
+                    &(df_existing_results["issue"]==issue)
+                    &(df_existing_results["summary_model"]==summary_record.summary_model)
+                    &(df_existing_results['tag'] == tag)
+                    &(df_existing_results['model'] == model)
+                ]
+                if existing_record.shape[0] > 0:
+                    if if_exist == "reuse":
+                        print(f"Skip: {tag} {summary_record.summary_model} summarizer")
+                    elif existing_record.shape[0] > 1:
+                        warnings.warn(f"Record has multiple existing summaries: {summary_record.filename}")
+                    else:
+                        df_existing_results = df_existing_results.drop(existing_record.index)
+
+                if use_few_shot:
+                    prompt = get_few_shot_prompt(issue, summary_record.summary)
+                    results = analyze_text(
+                        prompt, model, parse_retries=parse_retries, max_retries=max_retries, dry_run=dry_run
+                    )
+                    results_df = pd.DataFrame([results])
+                else:
+                    prompt = get_prompts(issue, summary_record.summary, override_persona_and_encouragement)
+                    results = analyze_text_with_batch(
+                        prompt, model, parse_retries=parse_retries, max_retries=max_retries, dry_run=dry_run
+                    )
+                    results_df = pd.DataFrame(results)
+                results_df['filename'] = summary_record.filename
+                results_df['issue'] = issue
+                results_df['model'] = model
+                results_df['summary_model'] = summary_record.summary_model
+                results_df['tag'] = tag
+                results_df['created_at'] = datetime.now()
+                results_df = results_df[[
+                    'filename', 'issue', 'summary_model', 'tag', 'model', 'score', 'error_message', 'prompt',
+                    'created_at']]
+                if existing_record.shape[0] > 0:
+                    df_new = pd.concat([df_existing_results, results_df])
+                    df_new.to_csv(results_file, mode="w", index=False)
+                else:
+                    results_df.to_csv(results_file, mode="a", index=False, header=False)

@@ -1,0 +1,27 @@
+policy_areas:
+  european_union: |
+    The European Union and European integration.
+  taxation: |
+    Taxation, spending on public services, and tradeoffs between these.
+  lifestyle: |
+    Social and lifestyle issues, including, abortion, LBTQ+ issues; support for traditional social values.
+  immigration: |
+    Immigration: immigration and border control.
+  environment: |
+    Environmental protection: tradeoffs between protecting the environment and economic growth.
+  decentralization: |
+    Decentralization of political power and the role of regional governments.
+
+system_template_string: |
+  You are an expert political analyst. Please summarize the following political manifesto. You should detect the initial language and output the summaries in English.
+        The summary should highlight key points and policy positions specifically related to the following topics, as these will be evaluated later:
+
+        {issue_areas}
+
+        Aim for a concise summary of around {min_size}-{max_size} words that covers these key policy areas, and be sure they are all present on the original text.
+        Give bullet points for each area, and format the output as plaintext.
+
+human_template_string: |
+  Please summarize the following text:
+  
+  {text}
